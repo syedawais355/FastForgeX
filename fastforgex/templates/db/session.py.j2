@@ -1,6 +1,8 @@
+"""Async SQLAlchemy engine and session management."""
+
 from __future__ import annotations
 
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -42,15 +44,7 @@ def _get_factory() -> async_sessionmaker[AsyncSession]:
     return _session_factory
 
 
-async def init_db() -> None:
-    """Create all tables. Intended for development; use Alembic in production."""
-    from app.db.base import Base
-    async with _get_engine().begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-
 async def close_db() -> None:
-    """Dispose the engine connection pool on shutdown."""
     global _engine
     if _engine is not None:
         await _engine.dispose()
@@ -58,6 +52,5 @@ async def close_db() -> None:
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """FastAPI dependency that yields a database session per request."""
     async with _get_factory()() as session:
         yield session

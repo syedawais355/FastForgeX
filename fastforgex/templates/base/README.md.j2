@@ -1,12 +1,8 @@
 # {{ project_name }}
 
-A FastAPI application generated with [FastForgeX](https://github.com/syedawais355/FastForgeX).
+A production-ready FastAPI service scaffold.
 
-## Requirements
-
-- Python 3.12+{% if docker %} / Docker{% endif %}
-
-## Setup
+## Quick Start
 
 ```bash
 python -m venv .venv
@@ -15,21 +11,18 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 {% if use_db %}
-Edit `.env` and set `DATABASE_URL` before running.
+Set `DATABASE_URL` in `.env`, then run:
 
 ```bash
 alembic upgrade head
 ```
 {% endif %}
 
-## Running
+## Run
 
 ```bash
 uvicorn app.main:app --reload
 ```
-
-- API: `http://localhost:8000`
-- Docs: `http://localhost:8000/docs`
 {% if docker %}
 
 ## Docker
@@ -54,14 +47,12 @@ pytest
 {% endif %}
 {% if lint %}
 
-## Code Quality
+## Lint
 
 ```bash
 ruff check .
 black --check .
 ```
-
-Run `pre-commit install` to enforce these checks on every commit.
 {% endif %}
 {% if makefile %}
 
@@ -72,15 +63,15 @@ make help
 ```
 {% endif %}
 
-## Project Structure
+## Structure
 
 ```
 app/
-  api/          route handlers
-  core/         config, logger, exceptions
-{% if use_db %}  db/           database engine, session, models
-{% endif %}  services/     business logic
-  main.py       application entry point
-{% if tests %}tests/          test suite
-{% endif %}{% if use_db %}alembic/        database migrations
+  api/
+  core/
+{% if use_db %}  db/
+{% endif %}  services/
+  main.py
+{% if tests %}tests/
+{% endif %}{% if use_db %}alembic/
 {% endif %}```

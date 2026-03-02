@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -32,6 +33,25 @@ def test_base_files_always_created(tmp_path: Path) -> None:
         assert (root / rel).exists(), f"missing: {rel}"
 
 
+def test_generated_readme_has_no_urls(tmp_path: Path) -> None:
+    root = _gen(tmp_path, db="postgresql", docker=True, tests=True, lint=True, makefile=True)
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    assert "http://" not in readme
+    assert "https://" not in readme
+
+
+def test_generated_app_uses_settings_for_name_and_version(tmp_path: Path) -> None:
+    root = _gen(tmp_path)
+    config_source = (root / "app" / "core" / "config.py").read_text(encoding="utf-8")
+    main_source = (root / "app" / "main.py").read_text(encoding="utf-8")
+    routes_source = (root / "app" / "api" / "routes.py").read_text(encoding="utf-8")
+    assert 'app_name: str = "testproject"' in config_source
+    assert 'app_version: str = "0.1.0"' in config_source
+    assert "title=settings.app_name" in main_source
+    assert "version=settings.app_version" in main_source
+    assert "version=settings.app_version" in routes_source
+
+
 def test_no_db_folder_without_db(tmp_path: Path) -> None:
     root = _gen(tmp_path)
     assert not (root / "app" / "db").exists()
@@ -50,6 +70,13 @@ def test_db_files_created_sqlite(tmp_path: Path) -> None:
 def test_db_files_created_postgresql(tmp_path: Path) -> None:
     root = _gen(tmp_path, db="postgresql")
     assert (root / "alembic.ini").exists()
+
+
+def test_postgresql_main_does_not_force_db_init_on_startup(tmp_path: Path) -> None:
+    root = _gen(tmp_path, db="postgresql")
+    main_source = (root / "app" / "main.py").read_text()
+    assert "await init_db()" not in main_source
+    assert "from app.db.session import close_db" in main_source
 
 
 def test_docker_files_created(tmp_path: Path) -> None:
@@ -124,4 +151,32 @@ def test_requirements_asyncpg_for_postgresql(tmp_path: Path) -> None:
 def test_entrypoint_executable(tmp_path: Path) -> None:
     root = _gen(tmp_path, docker=True)
     sh = root / "entrypoint.sh"
-    assert sh.stat().st_mode & 0o111
+    if os.name == "nt":
+        assert sh.exists()
+        assert sh.read_text(encoding="utf-8").startswith("#!/bin/sh")
+    else:
+        assert sh.stat().st_mode & 0o111
+
+
+def test_generated_python_files_start_with_module_docstring(tmp_path: Path) -> None:
+    root = _gen(tmp_path, db="sqlite", tests=True)
+    python_files = [
+        root / "app" / "__init__.py",
+        root / "app" / "main.py",
+        root / "app" / "api" / "__init__.py",
+        root / "app" / "api" / "routes.py",
+        root / "app" / "core" / "config.py",
+        root / "app" / "core" / "exceptions.py",
+        root / "app" / "core" / "logger.py",
+        root / "app" / "services" / "__init__.py",
+        root / "app" / "db" / "__init__.py",
+        root / "app" / "db" / "base.py",
+        root / "app" / "db" / "session.py",
+        root / "app" / "db" / "models" / "__init__.py",
+        root / "alembic" / "env.py",
+        root / "tests" / "__init__.py",
+        root / "tests" / "conftest.py",
+        root / "tests" / "test_health.py",
+    ]
+    for path in python_files:
+        assert path.read_text(encoding="utf-8").startswith('"""'), f"missing docstring: {path}"

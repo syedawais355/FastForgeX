@@ -1,3 +1,5 @@
+"""Application settings loaded from environment variables."""
+
 from __future__ import annotations
 
 from typing import Literal
@@ -12,6 +14,8 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
+    app_name: str = "{{ project_name }}"
+    app_version: str = "0.1.0"
     app_env: Literal["development", "production", "test"] = "development"
     log_format: Literal["text", "json"] = "text"
     cors_origins: list[str] = ["*"]
