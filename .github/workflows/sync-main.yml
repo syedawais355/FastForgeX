@@ -30,7 +30,7 @@ jobs:
       - name: Resolve package name + version
         id: pkg
         run: |
-          python -c 'import tomllib; data = tomllib.load(open("pyproject.toml", "rb")); print(f"name={data[\"project\"][\"name\"]}"); print(f"version={data[\"project\"][\"version\"]}")' >> "$GITHUB_OUTPUT"
+          python -c "import tomllib; data = tomllib.load(open('pyproject.toml', 'rb')); print(f'name={data[\"project\"][\"name\"]}'); print(f'version={data[\"project\"][\"version\"]}')" >> "$GITHUB_OUTPUT"
 
       - name: Check if version exists on PyPI
         id: pypi
