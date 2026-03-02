@@ -1,0 +1,86 @@
+# {{ project_name }}
+
+A FastAPI application generated with [FastForgeX](https://github.com/syedawais355/FastForgeX).
+
+## Requirements
+
+- Python 3.12+{% if docker %} / Docker{% endif %}
+
+## Setup
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+{% if use_db %}
+Edit `.env` and set `DATABASE_URL` before running.
+
+```bash
+alembic upgrade head
+```
+{% endif %}
+
+## Running
+
+```bash
+uvicorn app.main:app --reload
+```
+
+- API: `http://localhost:8000`
+- Docs: `http://localhost:8000/docs`
+{% if docker %}
+
+## Docker
+{% if db == "postgresql" %}
+```bash
+docker compose up -d
+```
+{% else %}
+```bash
+docker build -t {{ project_name }} .
+docker run -p 8000:8000 --env-file .env {{ project_name }}
+```
+{% endif %}
+{% endif %}
+{% if tests %}
+
+## Tests
+
+```bash
+pytest
+```
+{% endif %}
+{% if lint %}
+
+## Code Quality
+
+```bash
+ruff check .
+black --check .
+```
+
+Run `pre-commit install` to enforce these checks on every commit.
+{% endif %}
+{% if makefile %}
+
+## Makefile
+
+```bash
+make help
+```
+{% endif %}
+
+## Project Structure
+
+```
+app/
+  api/          route handlers
+  core/         config, logger, exceptions
+{% if use_db %}  db/           database engine, session, models
+{% endif %}  services/     business logic
+  main.py       application entry point
+{% if tests %}tests/          test suite
+{% endif %}{% if use_db %}alembic/        database migrations
+{% endif %}```

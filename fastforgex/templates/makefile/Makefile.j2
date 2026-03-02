@@ -1,0 +1,66 @@
+.PHONY: install run test lint format {% if use_db %}migrate {% endif %}{% if docker %}build up down {% endif %}help
+
+install:
+	pip install -r requirements.txt
+
+run:
+	uvicorn app.main:app --reload
+
+{% if tests %}
+test:
+	pytest
+
+test-cov:
+	pytest --cov=app --cov-report=term-missing
+{% endif %}
+
+{% if lint %}
+lint:
+	ruff check .
+	black --check .
+
+format:
+	ruff check . --fix
+	black .
+{% endif %}
+
+{% if use_db %}
+migrate:
+	alembic upgrade head
+
+migration:
+	alembic revision --autogenerate -m "$(name)"
+
+rollback:
+	alembic downgrade -1
+{% endif %}
+
+{% if docker %}
+build:
+	docker build -t {{ project_name }} .
+
+{% if db == "postgresql" %}
+up:
+	docker compose up -d
+
+down:
+	docker compose down
+{% else %}
+up:
+	docker run -p 8000:8000 --env-file .env {{ project_name }}
+{% endif %}
+{% endif %}
+
+help:
+	@echo "Available targets:"
+	@echo "  install     install dependencies"
+	@echo "  run         start dev server"
+{% if tests %}	@echo "  test        run tests"
+{% endif %}{% if lint %}	@echo "  lint        check code style"
+	@echo "  format      auto-fix code style"
+{% endif %}{% if use_db %}	@echo "  migrate     apply database migrations"
+	@echo "  migration   create a new migration (make migration name=...)"
+{% endif %}{% if docker %}	@echo "  build       build docker image"
+	@echo "  up          start containers"
+	@echo "  down        stop containers"
+{% endif %}

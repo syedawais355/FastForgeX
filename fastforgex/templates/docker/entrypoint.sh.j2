@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+{% if use_db %}
+alembic upgrade head
+{% endif %}
+
+exec uvicorn app.main:app \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --workers 1 \
+    --no-access-log

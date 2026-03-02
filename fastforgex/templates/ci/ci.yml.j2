@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    {% if db == "postgresql" %}
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: dbname
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    {% endif %}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      {% if lint %}
+      - name: Lint
+        run: |
+          ruff check .
+          black --check .
+      {% endif %}
+
+      {% if tests %}
+      - name: Test
+        env:
+          APP_ENV: test
+          {% if db == "postgresql" %}
+          DATABASE_URL: postgresql+asyncpg://user:password@localhost:5432/dbname
+          {% elif db == "sqlite" %}
+          DATABASE_URL: sqlite+aiosqlite:///./test.db
+          {% endif %}
+        run: pytest
+      {% endif %}
