@@ -60,77 +60,91 @@ def _resolve_cli_version() -> str:
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option(version=_resolve_cli_version(), prog_name="fastforgex")
 def cli() -> None:
-    """Generate production-ready FastAPI project scaffolds.
+    """🚀 FastForgeX: The Ultimate FastAPI Project Scaffolder.
+
+    FastForgeX helps you bootstrap production-ready FastAPI applications with 
+    best practices, batteries-included configurations, and modular architecture.
 
     \b
-    Examples:
-      fastforgex new
-      fastforgex new myapi --preset api
-      fastforgex new myapi --db sqlite --tests --lint
-      fastforgex new myapi --db postgresql --docker --ci --makefile
+    CORE FEATURES:
+    • 🛠️  Multiple Presets (Minimal, API, Full)
+    • 🗄️  Database Support (SQLite, PostgreSQL)
+    • 🔗  ORM Integration (SQLAlchemy)
+    • 🐳  Docker & Docker Compose Ready
+    • 🧪  Pytest Suite & Coverage
+    • 🧹  Linting (Ruff, Black) & Pre-commit
+    • 👷  CI/CD (GitHub Actions)
+    • 📝  Automated Alembic Migrations
+
+    Run 'fastforgex new --help' for detailed project creation options.
     """
 
 
 @cli.command(
     context_settings=CONTEXT_SETTINGS,
-    short_help="Create a FastAPI project scaffold.",
+    short_help="✨ Create a new FastAPI project scaffold.",
 )
 @click.argument("project_name", required=False)
 @click.option(
     "--db",
     type=click.Choice(["none", "sqlite", "postgresql"]),
     default=None,
-    help="Database backend for non-interactive mode.",
+    help="Database engine to use. Default: prompt in interactive mode.",
 )
 @click.option(
     "--orm",
     type=click.Choice(["none", "sqlalchemy"]),
     default=None,
-    help="ORM layer. Auto-set to 'sqlalchemy' when --db is sqlite or postgresql.",
+    help="ORM layer. Defaults to 'sqlalchemy' if a database is selected.",
 )
 @click.option(
     "--docker",
     is_flag=True,
     default=False,
-    help="Include Dockerfile and runtime entrypoint.",
+    help="Generate Dockerfile and .dockerignore for containerization.",
 )
-@click.option("--tests", is_flag=True, default=False, help="Include pytest test scaffold.")
+@click.option(
+    "--tests", 
+    is_flag=True, 
+    default=False, 
+    help="Include a comprehensive pytest suite with health checks."
+)
 @click.option(
     "--lint",
     is_flag=True,
     default=False,
-    help="Include ruff, black, and pre-commit configuration.",
+    help="Setup Ruff, Black, and Pre-commit for code quality.",
 )
 @click.option(
     "--ci",
     is_flag=True,
     default=False,
-    help="Include GitHub Actions CI workflow.",
+    help="Include GitHub Actions workflow for automated CI.",
 )
 @click.option(
     "--makefile",
     is_flag=True,
     default=False,
-    help="Include Makefile with common development targets.",
+    help="Add a Makefile with useful shortcuts (run, test, lint, etc.).",
 )
 @click.option(
     "--preset",
     type=click.Choice(["minimal", "api", "full"]),
     default=None,
-    help="Apply a predefined stack. Overrides individual feature flags.",
+    help="Apply a predefined stack (overrides individual flags).",
 )
 @click.option(
     "--output",
     "-o",
     default=".",
     show_default=True,
-    help="Base directory where the new project folder will be created.",
+    help="Target directory for the new project folder.",
 )
 @click.option(
     "--dry-run",
     is_flag=True,
     default=False,
-    help="Print generated file list only. No files are written.",
+    help="Preview the file structure without writing to disk.",
 )
 def new(
     project_name: str | None,
@@ -145,17 +159,17 @@ def new(
     output: str,
     dry_run: bool,
 ) -> None:
-    """Create a new FastAPI project.
+    """✨ Bootstrap a new FastAPI project.
 
-    If PROJECT_NAME or --db is omitted, interactive prompts are shown.
+    If PROJECT_NAME or options are missing, FastForgeX will guide you 
+    through an interactive setup process.
 
     \b
-    Examples:
-      fastforgex new
-      fastforgex new myapi --preset api
-      fastforgex new myapi --db sqlite --tests --lint
-      fastforgex new myapi --db postgresql --docker --ci --makefile
-      fastforgex new myapi --db sqlite --dry-run
+    USAGE EXAMPLES:
+      $ fastforgex new                               # Interactive mode
+      $ fastforgex new my-app --preset full          # Use 'full' stack preset
+      $ fastforgex new my-app --db sqlite --tests    # Custom configuration
+      $ fastforgex new my-app --dry-run              # Preview file structure
     """
     if preset:
         if not project_name:
