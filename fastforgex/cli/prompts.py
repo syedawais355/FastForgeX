@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal, cast
+
 import questionary
 from questionary import Style
 
@@ -37,27 +39,42 @@ def run_interactive(project_name: str | None = None) -> ProjectConfig:
         except ValueError as exc:
             raise SystemExit(f"Error: {exc}") from exc
 
-    db = questionary.select(
-        "Database:",
-        choices=["none", "sqlite", "postgresql"],
-        default="none",
-        style=_STYLE,
-    ).ask()
-
-    orm = "none"
-    if db != "none":
-        orm = questionary.select(
-            "ORM:",
-            choices=["sqlalchemy", "none"],
-            default="sqlalchemy",
+    db = cast(
+        Literal["none", "sqlite", "postgresql"],
+        questionary.select(
+            "Database:",
+            choices=["none", "sqlite", "postgresql"],
+            default="none",
             style=_STYLE,
-        ).ask()
+        ).ask(),
+    )
 
-    docker = questionary.confirm("Include Docker?", default=False, style=_STYLE).ask()
-    tests = questionary.confirm("Include tests?", default=True, style=_STYLE).ask()
-    lint = questionary.confirm("Include linting (ruff + black)?", default=True, style=_STYLE).ask()
-    ci = questionary.confirm("Include GitHub Actions CI?", default=False, style=_STYLE).ask()
-    makefile = questionary.confirm("Include Makefile?", default=False, style=_STYLE).ask()
+    orm: Literal["none", "sqlalchemy"] = "none"
+    if db != "none":
+        orm = cast(
+            Literal["none", "sqlalchemy"],
+            questionary.select(
+                "ORM:",
+                choices=["sqlalchemy", "none"],
+                default="sqlalchemy",
+                style=_STYLE,
+            ).ask(),
+        )
+
+    docker = cast(bool, questionary.confirm("Include Docker?", default=False, style=_STYLE).ask())
+    tests = cast(bool, questionary.confirm("Include tests?", default=True, style=_STYLE).ask())
+    lint = cast(
+        bool,
+        questionary.confirm("Include linting (ruff + black)?", default=True, style=_STYLE).ask(),
+    )
+    ci = cast(
+        bool,
+        questionary.confirm("Include GitHub Actions CI?", default=False, style=_STYLE).ask(),
+    )
+    makefile = cast(
+        bool,
+        questionary.confirm("Include Makefile?", default=False, style=_STYLE).ask(),
+    )
 
     questionary.print("\nConfiguration:", style="bold")
     questionary.print(f"  Project  : {project_name}")
