@@ -44,6 +44,13 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Detected version: $VERSION"
 
+      - name: Resolve package name
+        id: package-name
+        run: |
+          NAME=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["name"])')
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "Detected name: $NAME"
+
       - name: Resolve release/tag ref
         id: release-ref
         env:
@@ -124,15 +131,19 @@ jobs:
           secure: false
           to: ${{ env.NOTIFY_EMAIL_TO }}
           from: ${{ env.SMTP_USERNAME }}
-          subject: "[FastForgeX] PyPI publish success v${{ steps.package-version.outputs.version }}"
+          subject: "[FastForgeX] PyPI publish success ${{ steps.package-name.outputs.name }} v${{ steps.package-version.outputs.version }}"
           body: |
             FastForgeX publish workflow completed successfully.
+            
+            Package: ${{ steps.package-name.outputs.name }}
+            Version: v${{ steps.package-version.outputs.version }}
+            PyPI URL: https://pypi.org/project/${{ steps.package-name.outputs.name }}/${{ steps.package-version.outputs.version }}/
+            
             Existing on PyPI before run: ${{ steps.pypi-sync.outputs.exists }}
             Artifacts identical to PyPI: ${{ steps.pypi-sync.outputs.identical }}
 
             Repository: ${{ github.repository }}
             Branch/Ref: ${{ github.ref }}
-            Version: ${{ steps.package-version.outputs.version }}
             Actor: ${{ github.actor }}
             Workflow run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
@@ -147,12 +158,14 @@ jobs:
           secure: false
           to: ${{ env.NOTIFY_EMAIL_TO }}
           from: ${{ env.SMTP_USERNAME }}
-          subject: "[FastForgeX] PyPI publish FAILED v${{ steps.package-version.outputs.version }}"
+          subject: "[FastForgeX] PyPI publish FAILED ${{ steps.package-name.outputs.name }} v${{ steps.package-version.outputs.version }}"
           body: |
             FastForgeX publish workflow failed.
 
+            Package: ${{ steps.package-name.outputs.name }}
+            Version: v${{ steps.package-version.outputs.version }}
+            
             Repository: ${{ github.repository }}
             Branch/Ref: ${{ github.ref }}
-            Version: ${{ steps.package-version.outputs.version }}
             Actor: ${{ github.actor }}
             Workflow run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
