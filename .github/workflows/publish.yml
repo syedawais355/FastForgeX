@@ -73,62 +73,31 @@ jobs:
           fi
           echo "Release commit is aligned with main HEAD."
 
-      - name: Check whether version already exists on PyPI
-        id: pypi-version-check
-        env:
-          PACKAGE_VERSION: ${{ steps.package-version.outputs.version }}
-        run: |
-          STATUS=$(python - <<'PY'
-          import os
-          import urllib.error
-          import urllib.request
-
-          version = os.environ["PACKAGE_VERSION"]
-          url = f"https://pypi.org/pypi/fastforgex/{version}/json"
-          try:
-              with urllib.request.urlopen(url) as resp:
-                  print(resp.status)
-          except urllib.error.HTTPError as exc:
-              print(exc.code)
-          PY
-          )
-          if [ "$STATUS" = "200" ]; then
-            echo "Version $PACKAGE_VERSION already exists on PyPI."
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [ "$STATUS" != "404" ]; then
-            echo "Unexpected PyPI response status: $STATUS"
-            exit 1
-          fi
-          echo "exists=false" >> "$GITHUB_OUTPUT"
-          echo "Version $PACKAGE_VERSION is new and can be published."
-
       - name: Build distribution
-        if: steps.pypi-version-check.outputs.exists != 'true'
         run: python -m build
 
       - name: Verify wheel matches source files
-        if: steps.pypi-version-check.outputs.exists != 'true'
         run: python scripts/verify_wheel_matches_source.py --dist-dir dist
 
       - name: Verify wheel CLI version
-        if: steps.pypi-version-check.outputs.exists != 'true'
         run: python scripts/verify_wheel_version.py --dist-dir dist
 
       - name: Check distribution
-        if: steps.pypi-version-check.outputs.exists != 'true'
         run: twine check dist/*
 
+      - name: Check PyPI artifact sync for this version
+        id: pypi-sync
+        run: python scripts/check_pypi_artifact_sync.py --dist-dir dist
+
       - name: Publish to PyPI
-        if: steps.pypi-version-check.outputs.exists != 'true'
+        if: steps.pypi-sync.outputs.exists != 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
 
       - name: Report already published version
-        if: steps.pypi-version-check.outputs.exists == 'true'
-        run: echo "Skipping publish because version already exists on PyPI."
+        if: steps.pypi-sync.outputs.exists == 'true' && steps.pypi-sync.outputs.identical == 'true'
+        run: echo "Skipping publish because identical artifacts already exist on PyPI."
 
       - name: Notify publish success by email
         if: success() && env.SMTP_SERVER != '' && env.SMTP_USERNAME != '' && env.SMTP_PASSWORD != '' && env.NOTIFY_EMAIL_TO != ''
@@ -144,7 +113,8 @@ jobs:
           subject: "[FastForgeX] PyPI publish success v${{ steps.package-version.outputs.version }}"
           body: |
             FastForgeX publish workflow completed successfully.
-            Existing on PyPI before run: ${{ steps.pypi-version-check.outputs.exists }}
+            Existing on PyPI before run: ${{ steps.pypi-sync.outputs.exists }}
+            Artifacts identical to PyPI: ${{ steps.pypi-sync.outputs.identical }}
 
             Repository: ${{ github.repository }}
             Branch/Ref: ${{ github.ref }}
