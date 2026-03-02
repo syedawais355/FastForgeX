@@ -87,10 +87,10 @@ def cli() -> None:
     help="Generate Dockerfile and .dockerignore for containerization.",
 )
 @click.option(
-    "--tests", 
-    is_flag=True, 
-    default=False, 
-    help="Include a comprehensive pytest suite with health checks."
+    "--tests",
+    is_flag=True,
+    default=False,
+    help="Include a comprehensive pytest suite with health checks.",
 )
 @click.option(
     "--lint",
