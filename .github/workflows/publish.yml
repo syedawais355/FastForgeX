@@ -15,6 +15,12 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      NOTIFY_EMAIL_TO: ${{ secrets.NOTIFY_EMAIL_TO }}
     outputs:
       package_version: ${{ steps.package-version.outputs.version }}
 
@@ -83,16 +89,16 @@ jobs:
           password: ${{ secrets.PYPI_API_TOKEN }}
 
       - name: Notify publish success by email
-        if: success() && secrets.SMTP_SERVER != '' && secrets.SMTP_USERNAME != '' && secrets.SMTP_PASSWORD != '' && secrets.NOTIFY_EMAIL_TO != ''
+        if: success() && env.SMTP_SERVER != '' && env.SMTP_USERNAME != '' && env.SMTP_PASSWORD != '' && env.NOTIFY_EMAIL_TO != ''
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: ${{ secrets.SMTP_SERVER }}
-          server_port: ${{ secrets.SMTP_PORT || '587' }}
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
+          server_address: ${{ env.SMTP_SERVER }}
+          server_port: ${{ env.SMTP_PORT != '' && env.SMTP_PORT || '587' }}
+          username: ${{ env.SMTP_USERNAME }}
+          password: ${{ env.SMTP_PASSWORD }}
           secure: false
-          to: ${{ secrets.NOTIFY_EMAIL_TO }}
-          from: ${{ secrets.SMTP_USERNAME }}
+          to: ${{ env.NOTIFY_EMAIL_TO }}
+          from: ${{ env.SMTP_USERNAME }}
           subject: "[FastForgeX] PyPI publish success v${{ steps.package-version.outputs.version }}"
           body: |
             FastForgeX was successfully published to PyPI.
@@ -104,16 +110,16 @@ jobs:
             Workflow run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: Notify publish failure by email
-        if: failure() && secrets.SMTP_SERVER != '' && secrets.SMTP_USERNAME != '' && secrets.SMTP_PASSWORD != '' && secrets.NOTIFY_EMAIL_TO != ''
+        if: failure() && env.SMTP_SERVER != '' && env.SMTP_USERNAME != '' && env.SMTP_PASSWORD != '' && env.NOTIFY_EMAIL_TO != ''
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: ${{ secrets.SMTP_SERVER }}
-          server_port: ${{ secrets.SMTP_PORT || '587' }}
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
+          server_address: ${{ env.SMTP_SERVER }}
+          server_port: ${{ env.SMTP_PORT != '' && env.SMTP_PORT || '587' }}
+          username: ${{ env.SMTP_USERNAME }}
+          password: ${{ env.SMTP_PASSWORD }}
           secure: false
-          to: ${{ secrets.NOTIFY_EMAIL_TO }}
-          from: ${{ secrets.SMTP_USERNAME }}
+          to: ${{ env.NOTIFY_EMAIL_TO }}
+          from: ${{ env.SMTP_USERNAME }}
           subject: "[FastForgeX] PyPI publish FAILED v${{ steps.package-version.outputs.version }}"
           body: |
             FastForgeX publish workflow failed.
