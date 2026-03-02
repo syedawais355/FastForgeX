@@ -101,6 +101,9 @@ jobs:
       - name: Build distribution
         run: python -m build
 
+      - name: Verify wheel matches source files
+        run: python scripts/verify_wheel_matches_source.py --dist-dir dist
+
       - name: Verify wheel CLI version
         run: python scripts/verify_wheel_version.py --dist-dir dist
 

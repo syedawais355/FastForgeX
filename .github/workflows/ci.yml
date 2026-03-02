@@ -32,6 +32,13 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev]"
 
+      - name: Enforce version bump for package changes
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python scripts/enforce_version_bump.py --base "$BASE_SHA" --head "$HEAD_SHA"
+
       - name: Lint with ruff
         run: ruff check .
 
@@ -43,6 +50,9 @@ jobs:
 
       - name: Build package
         run: pip install build && python -m build
+
+      - name: Verify wheel matches source files
+        run: python scripts/verify_wheel_matches_source.py --dist-dir dist
 
       - name: Verify wheel CLI version
         run: python scripts/verify_wheel_version.py --dist-dir dist
