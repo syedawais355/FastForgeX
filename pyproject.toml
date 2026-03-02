@@ -8,7 +8,7 @@ version = "0.1.1"
 description = "FastAPI project scaffolding CLI"
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.12"
+requires-python = ">=3.8"
 authors = [{name = "Syed Muhammad Awais Gillani", email = "iamawaisgillani@gmail.com"}]
 keywords = ["fastapi", "scaffold", "cli", "generator", "boilerplate"]
 classifiers = [
@@ -17,7 +17,12 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Code Generators",
 ]
 dependencies = [
@@ -47,7 +52,7 @@ Issues = "https://github.com/syedawais355/FastForgeX/issues"
 packages = ["fastforgex"]
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py38"
 line-length = 100
 
 [tool.ruff.lint]
@@ -58,12 +63,12 @@ known-first-party = ["fastforgex"]
 
 [tool.black]
 line-length = 100
-target-version = ["py312"]
+target-version = ["py38"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.8"
 strict = true

@@ -6,7 +6,6 @@ from pathlib import Path
 
 import click
 
-from fastforgex import __version__
 from fastforgex.engine.config import ProjectConfig, validate_project_name
 from fastforgex.engine.generator import generate
 from fastforgex.engine.resolver import ResolutionError, resolve
@@ -43,7 +42,7 @@ PRESETS: dict[str, dict[str, object]] = {
 
 
 @click.group()
-@click.version_option(__version__, prog_name="fastforgex")
+@click.version_option(package_name="fastforgex", prog_name="fastforgex")
 def cli() -> None:
     """FastForgeX — FastAPI project scaffolding CLI.
 
