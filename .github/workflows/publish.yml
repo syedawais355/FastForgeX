@@ -1,13 +1,9 @@
 name: Publish to PyPI
 
 on:
-  push:
-    branches:
-      - main
   release:
     types:
-      - created
-  workflow_dispatch:
+      - published
 
 permissions:
   contents: read
@@ -49,6 +45,34 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Detected version: $VERSION"
 
+      - name: Validate release tag matches package version
+        env:
+          PACKAGE_VERSION: ${{ steps.package-version.outputs.version }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          EXPECTED_TAG="v$PACKAGE_VERSION"
+          if [ "$RELEASE_TAG" != "$EXPECTED_TAG" ]; then
+            echo "Release tag mismatch."
+            echo "Expected: $EXPECTED_TAG"
+            echo "Actual:   $RELEASE_TAG"
+            exit 1
+          fi
+          echo "Release tag matches package version: $RELEASE_TAG"
+
+      - name: Validate release commit is current main HEAD
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          git fetch origin main --depth=1
+          MAIN_SHA=$(git rev-parse origin/main)
+          if [ "$RELEASE_SHA" != "$MAIN_SHA" ]; then
+            echo "Release commit is not the latest main commit."
+            echo "main HEAD:    $MAIN_SHA"
+            echo "release SHA:  $RELEASE_SHA"
+            exit 1
+          fi
+          echo "Release commit is aligned with main HEAD."
+
       - name: Ensure version does not already exist on PyPI
         env:
           PACKAGE_VERSION: ${{ steps.package-version.outputs.version }}
@@ -69,13 +93,16 @@ jobs:
           )
           if [ "$STATUS" = "200" ]; then
             echo "Version $PACKAGE_VERSION already exists on PyPI."
-            echo "Bump [project].version in pyproject.toml before merging to main."
+            echo "Bump [project].version in pyproject.toml before creating the release tag."
             exit 1
           fi
           echo "Version $PACKAGE_VERSION is new and can be published."
 
       - name: Build distribution
         run: python -m build
+
+      - name: Verify wheel matches source files
+        run: python scripts/verify_wheel_matches_source.py --dist-dir dist
 
       - name: Verify wheel CLI version
         run: python scripts/verify_wheel_version.py --dist-dir dist
