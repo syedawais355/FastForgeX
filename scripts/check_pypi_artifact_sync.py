@@ -116,7 +116,10 @@ def main() -> int:
 
     if mismatches:
         _set_github_outputs(exists=True, identical=False)
-        print(f"PyPI has {package}=={version} but artifacts differ. Bump the version.", file=sys.stderr)
+        print(
+            f"PyPI has {package}=={version} but artifacts differ. Bump the version.",
+            file=sys.stderr,
+        )
         for mismatch in mismatches:
             print(f"  {mismatch}", file=sys.stderr)
         return 1

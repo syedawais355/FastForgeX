@@ -1,5 +1,3 @@
-"""CLI entry point for FastForgeX."""
-
 from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError
@@ -31,7 +29,7 @@ PRESETS: dict[str, dict[str, object]] = {
     "api": {
         "db": "postgresql",
         "orm": "sqlalchemy",
-        "docker": True,
+        "docker": False,
         "tests": True,
         "lint": True,
         "ci": True,
@@ -50,7 +48,6 @@ PRESETS: dict[str, dict[str, object]] = {
 
 
 def _resolve_cli_version() -> str:
-    """Return installed package version, with source fallback for local runs."""
     try:
         return package_version("fastforgex")
     except PackageNotFoundError:
@@ -60,55 +57,34 @@ def _resolve_cli_version() -> str:
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option(version=_resolve_cli_version(), prog_name="fastforgex")
 def cli() -> None:
-    """🚀 FastForgeX: The Ultimate FastAPI Project Scaffolder."""
+    """FastForgeX: FastAPI project scaffolder."""
 
 
 @cli.command(
     context_settings=CONTEXT_SETTINGS,
-    short_help="✨ Create a new FastAPI project scaffold.",
+    short_help="Create a new FastAPI project scaffold.",
 )
 @click.argument("project_name", required=False)
 @click.option(
     "--db",
     type=click.Choice(["none", "sqlite", "postgresql"]),
     default=None,
-    help="Database engine to use. Default: prompt in interactive mode.",
+    help="Database engine to use.",
 )
 @click.option(
     "--orm",
     type=click.Choice(["none", "sqlalchemy"]),
     default=None,
-    help="ORM layer. Defaults to 'sqlalchemy' if a database is selected.",
+    help="ORM layer. Defaults to 'sqlalchemy' when a database is selected.",
 )
 @click.option(
-    "--docker",
-    is_flag=True,
-    default=False,
-    help="Generate Dockerfile and .dockerignore for containerization.",
+    "--docker", is_flag=True, default=False, help="Generate Dockerfile and .dockerignore."
 )
+@click.option("--tests", is_flag=True, default=False, help="Include a pytest suite.")
+@click.option("--lint", is_flag=True, default=False, help="Setup Ruff, Black, and pre-commit.")
+@click.option("--ci", is_flag=True, default=False, help="Include a GitHub Actions CI workflow.")
 @click.option(
-    "--tests",
-    is_flag=True,
-    default=False,
-    help="Include a comprehensive pytest suite with health checks.",
-)
-@click.option(
-    "--lint",
-    is_flag=True,
-    default=False,
-    help="Setup Ruff, Black, and Pre-commit for code quality.",
-)
-@click.option(
-    "--ci",
-    is_flag=True,
-    default=False,
-    help="Include GitHub Actions workflow for automated CI.",
-)
-@click.option(
-    "--makefile",
-    is_flag=True,
-    default=False,
-    help="Add a Makefile with useful shortcuts (run, test, lint, etc.).",
+    "--makefile", is_flag=True, default=False, help="Add a Makefile with common shortcuts."
 )
 @click.option(
     "--preset",
@@ -124,10 +100,7 @@ def cli() -> None:
     help="Target directory for the new project folder.",
 )
 @click.option(
-    "--dry-run",
-    is_flag=True,
-    default=False,
-    help="Preview the file structure without writing to disk.",
+    "--dry-run", is_flag=True, default=False, help="Preview file structure without writing."
 )
 def new(
     project_name: str | None,
@@ -142,7 +115,7 @@ def new(
     output: str,
     dry_run: bool,
 ) -> None:
-    """✨ Bootstrap a new FastAPI project with best practices."""
+    """Bootstrap a new FastAPI project with best practices."""
     if preset:
         if not project_name:
             project_name = click.prompt("Project name")
@@ -152,7 +125,7 @@ def new(
             raise click.ClickException(str(exc)) from exc
         raw = ProjectConfig(project_name=project_name, **PRESETS[preset])  # type: ignore[arg-type]
 
-    elif project_name and db is not None:
+    elif project_name is not None and db is not None:
         try:
             project_name = validate_project_name(project_name)
         except ValueError as exc:
@@ -166,6 +139,11 @@ def new(
             lint=lint,
             ci=ci,
             makefile=makefile,
+        )
+
+    elif project_name is not None and db is None and any([docker, tests, lint, ci, makefile]):
+        raise click.ClickException(
+            "Specify --db (or use --preset) when providing flags in non-interactive mode."
         )
 
     else:
@@ -248,18 +226,12 @@ def _print_success(config: ProjectConfig, root: Path) -> None:
     click.echo("Next steps:")
     click.echo(f"  cd {config.project_name}")
     click.echo("  python -m venv .venv")
-
-    if click.get_current_context().info_name:
-        click.echo("  source .venv/bin/activate   # Windows: .venv\\Scripts\\activate")
-
+    click.echo("  source .venv/bin/activate   # Windows: .venv\\Scripts\\activate")
     click.echo("  pip install -r requirements.txt")
     click.echo("  cp .env.example .env")
-
     if config.use_db:
-        click.echo("  # Edit .env and set DATABASE_URL")
+        click.echo("  # Edit .env with your DATABASE_URL")
         click.echo("  alembic upgrade head")
-
     click.echo("  uvicorn app.main:app --reload")
-
     if config.lint:
-        click.echo("\n  pre-commit install          # optional: enable git hooks")
+        click.echo("  pre-commit install")
