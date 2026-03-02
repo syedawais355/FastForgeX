@@ -49,9 +49,9 @@ def _write_base(root: Path, v: dict[str, object]) -> None:
     for d in ("api", "core", "services"):
         (app / d).mkdir(parents=True)
 
-    _put(app / "__init__.py", "")
-    _put(app / "api" / "__init__.py", "")
-    _put(app / "services" / "__init__.py", "")
+    _put(app / "__init__.py", '"""Application package."""\n')
+    _put(app / "api" / "__init__.py", '"""API package."""\n')
+    _put(app / "services" / "__init__.py", '"""Service layer package."""\n')
     _put(app / "main.py", render("base/main.py.j2", v))
     _put(app / "api" / "routes.py", render("base/routes.py.j2", v))
     _put(app / "core" / "config.py", render("base/config.py.j2", v))
@@ -63,8 +63,8 @@ def _write_db(root: Path, v: dict[str, object]) -> None:
     db_dir = root / "app" / "db"
     (db_dir / "models").mkdir(parents=True)
 
-    _put(db_dir / "__init__.py", "")
-    _put(db_dir / "models" / "__init__.py", "")
+    _put(db_dir / "__init__.py", '"""Database package."""\n')
+    _put(db_dir / "models" / "__init__.py", '"""ORM models package."""\n')
     _put(db_dir / "base.py", render("db/base.py.j2", v))
     _put(db_dir / "session.py", render("db/session.py.j2", v))
 
@@ -89,7 +89,7 @@ def _write_docker(root: Path, v: dict[str, object]) -> None:
 def _write_tests(root: Path, v: dict[str, object]) -> None:
     tests = root / "tests"
     tests.mkdir()
-    _put(tests / "__init__.py", "")
+    _put(tests / "__init__.py", '"""Test suite package."""\n')
     _put(tests / "conftest.py", render("tests/conftest.py.j2", v))
     _put(tests / "test_health.py", render("tests/test_health.py.j2", v))
 

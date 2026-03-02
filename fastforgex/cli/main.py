@@ -10,6 +10,11 @@ from fastforgex.engine.config import ProjectConfig, validate_project_name
 from fastforgex.engine.generator import generate
 from fastforgex.engine.resolver import ResolutionError, resolve
 
+CONTEXT_SETTINGS = {
+    "help_option_names": ["-h", "--help"],
+    "max_content_width": 100,
+}
+
 PRESETS: dict[str, dict[str, object]] = {
     "minimal": {
         "db": "none",
@@ -41,76 +46,80 @@ PRESETS: dict[str, dict[str, object]] = {
 }
 
 
-@click.group()
+@click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option(package_name="fastforgex", prog_name="fastforgex")
 def cli() -> None:
-    """FastForgeX — FastAPI project scaffolding CLI.
+    """Generate production-ready FastAPI project scaffolds.
 
     \b
-    Quickstart:
-      fastforgex new                          interactive mode
-      fastforgex new myapi --preset api       postgresql + docker + ci
+    Examples:
+      fastforgex new
+      fastforgex new myapi --preset api
       fastforgex new myapi --db sqlite --tests --lint
+      fastforgex new myapi --db postgresql --docker --ci --makefile
     """
 
 
-@cli.command()
+@cli.command(
+    context_settings=CONTEXT_SETTINGS,
+    short_help="Create a FastAPI project scaffold.",
+)
 @click.argument("project_name", required=False)
 @click.option(
     "--db",
     type=click.Choice(["none", "sqlite", "postgresql"]),
     default=None,
-    help="Database backend.",
+    help="Database backend for non-interactive mode.",
 )
 @click.option(
     "--orm",
     type=click.Choice(["none", "sqlalchemy"]),
     default=None,
-    help="ORM (auto-selected when DB is chosen).",
+    help="ORM layer. Auto-set to 'sqlalchemy' when --db is sqlite or postgresql.",
 )
 @click.option(
     "--docker",
     is_flag=True,
     default=False,
-    help="Add Dockerfile and entrypoint.",
+    help="Include Dockerfile and runtime entrypoint.",
 )
-@click.option("--tests", is_flag=True, default=False, help="Add pytest scaffold.")
+@click.option("--tests", is_flag=True, default=False, help="Include pytest test scaffold.")
 @click.option(
     "--lint",
     is_flag=True,
     default=False,
-    help="Add ruff, black, and pre-commit config.",
+    help="Include ruff, black, and pre-commit configuration.",
 )
 @click.option(
     "--ci",
     is_flag=True,
     default=False,
-    help="Add GitHub Actions CI workflow.",
+    help="Include GitHub Actions CI workflow.",
 )
 @click.option(
     "--makefile",
     is_flag=True,
     default=False,
-    help="Add Makefile with common targets.",
+    help="Include Makefile with common development targets.",
 )
 @click.option(
     "--preset",
     type=click.Choice(["minimal", "api", "full"]),
     default=None,
-    help="Use a predefined configuration.",
+    help="Apply a predefined stack. Overrides individual feature flags.",
 )
 @click.option(
     "--output",
     "-o",
     default=".",
     show_default=True,
-    help="Directory to generate the project in.",
+    help="Base directory where the new project folder will be created.",
 )
 @click.option(
     "--dry-run",
     is_flag=True,
     default=False,
-    help="Show what would be generated without writing files.",
+    help="Print generated file list only. No files are written.",
 )
 def new(
     project_name: str | None,
@@ -125,7 +134,18 @@ def new(
     output: str,
     dry_run: bool,
 ) -> None:
-    """Generate a new FastAPI project."""
+    """Create a new FastAPI project.
+
+    If PROJECT_NAME or --db is omitted, interactive prompts are shown.
+
+    \b
+    Examples:
+      fastforgex new
+      fastforgex new myapi --preset api
+      fastforgex new myapi --db sqlite --tests --lint
+      fastforgex new myapi --db postgresql --docker --ci --makefile
+      fastforgex new myapi --db sqlite --dry-run
+    """
     if preset:
         if not project_name:
             project_name = click.prompt("Project name")

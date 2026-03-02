@@ -1,41 +1,49 @@
+"""Structured logging utilities for the application."""
+
 from __future__ import annotations
 
 import json
 import logging
-import sys
+from datetime import UTC, datetime
 from typing import Any
 
 from app.core.config import settings
 
-_TEXT_FMT = logging.Formatter(
+_TEXT_FORMATTER = logging.Formatter(
     fmt="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+_CONFIGURED = False
 
 
 class _JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         payload: dict[str, Any] = {
+            "timestamp": datetime.now(UTC).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
         }
         if record.exc_info:
             payload["exc_info"] = self.formatException(record.exc_info)
-        return json.dumps(payload)
+        return json.dumps(payload, ensure_ascii=False)
+
+
+def configure_logging() -> None:
+    global _CONFIGURED
+    if _CONFIGURED:
+        return
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(_JsonFormatter() if settings.log_format == "json" else _TEXT_FORMATTER)
+
+    root_logger = logging.getLogger()
+    root_logger.handlers.clear()
+    root_logger.addHandler(handler)
+    root_logger.setLevel(logging.INFO if settings.app_env == "production" else logging.DEBUG)
+    _CONFIGURED = True
 
 
 def get_logger(name: str) -> logging.Logger:
-    """Return a configured logger. Safe to call multiple times for the same name."""
-    logger = logging.getLogger(name)
-    if logger.handlers:
-        return logger
-
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(
-        _JsonFormatter() if settings.log_format == "json" else _TEXT_FMT
-    )
-    logger.addHandler(handler)
-    logger.setLevel(logging.INFO if settings.app_env == "production" else logging.DEBUG)
-    logger.propagate = False
-    return logger
+    configure_logging()
+    return logging.getLogger(name)
