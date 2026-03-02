@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError, version as package_version
 from pathlib import Path
 
 import click
 
+from fastforgex import __version__
 from fastforgex.engine.config import ProjectConfig, validate_project_name
 from fastforgex.engine.generator import generate
 from fastforgex.engine.resolver import ResolutionError, resolve
@@ -46,8 +48,16 @@ PRESETS: dict[str, dict[str, object]] = {
 }
 
 
+def _resolve_cli_version() -> str:
+    """Return installed package version, with source fallback for local runs."""
+    try:
+        return package_version("fastforgex")
+    except PackageNotFoundError:
+        return __version__
+
+
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.version_option(package_name="fastforgex", prog_name="fastforgex")
+@click.version_option(version=_resolve_cli_version(), prog_name="fastforgex")
 def cli() -> None:
     """Generate production-ready FastAPI project scaffolds.
 

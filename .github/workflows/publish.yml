@@ -1,6 +1,9 @@
 name: Publish to PyPI
 
 on:
+  push:
+    branches:
+      - main
   release:
     types:
       - created
@@ -12,6 +15,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      package_version: ${{ steps.package-version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -26,8 +31,48 @@ jobs:
       - name: Install build dependencies
         run: pip install build twine
 
+      - name: Resolve package version
+        id: package-version
+        run: |
+          VERSION=$(python - <<'PY'
+          import tomllib
+          with open("pyproject.toml", "rb") as f:
+              print(tomllib.load(f)["project"]["version"])
+          PY
+          )
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected version: $VERSION"
+
+      - name: Ensure version does not already exist on PyPI
+        env:
+          PACKAGE_VERSION: ${{ steps.package-version.outputs.version }}
+        run: |
+          STATUS=$(python - <<'PY'
+          import os
+          import urllib.error
+          import urllib.request
+
+          version = os.environ["PACKAGE_VERSION"]
+          url = f"https://pypi.org/pypi/fastforgex/{version}/json"
+          try:
+              with urllib.request.urlopen(url) as resp:
+                  print(resp.status)
+          except urllib.error.HTTPError as exc:
+              print(exc.code)
+          PY
+          )
+          if [ "$STATUS" = "200" ]; then
+            echo "Version $PACKAGE_VERSION already exists on PyPI."
+            echo "Bump [project].version in pyproject.toml before merging to main."
+            exit 1
+          fi
+          echo "Version $PACKAGE_VERSION is new and can be published."
+
       - name: Build distribution
         run: python -m build
+
+      - name: Verify wheel CLI version
+        run: python scripts/verify_wheel_version.py --dist-dir dist
 
       - name: Check distribution
         run: twine check dist/*
@@ -36,3 +81,45 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Notify publish success by email
+        if: success() && secrets.SMTP_SERVER != '' && secrets.SMTP_USERNAME != '' && secrets.SMTP_PASSWORD != '' && secrets.NOTIFY_EMAIL_TO != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT || '587' }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          secure: false
+          to: ${{ secrets.NOTIFY_EMAIL_TO }}
+          from: ${{ secrets.SMTP_USERNAME }}
+          subject: "[FastForgeX] PyPI publish success v${{ steps.package-version.outputs.version }}"
+          body: |
+            FastForgeX was successfully published to PyPI.
+
+            Repository: ${{ github.repository }}
+            Branch/Ref: ${{ github.ref }}
+            Version: ${{ steps.package-version.outputs.version }}
+            Actor: ${{ github.actor }}
+            Workflow run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Notify publish failure by email
+        if: failure() && secrets.SMTP_SERVER != '' && secrets.SMTP_USERNAME != '' && secrets.SMTP_PASSWORD != '' && secrets.NOTIFY_EMAIL_TO != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT || '587' }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          secure: false
+          to: ${{ secrets.NOTIFY_EMAIL_TO }}
+          from: ${{ secrets.SMTP_USERNAME }}
+          subject: "[FastForgeX] PyPI publish FAILED v${{ steps.package-version.outputs.version }}"
+          body: |
+            FastForgeX publish workflow failed.
+
+            Repository: ${{ github.repository }}
+            Branch/Ref: ${{ github.ref }}
+            Version: ${{ steps.package-version.outputs.version }}
+            Actor: ${{ github.actor }}
+            Workflow run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
