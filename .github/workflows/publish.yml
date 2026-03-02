@@ -4,9 +4,13 @@ on:
   release:
     types:
       - published
+  push:
+    tags:
+      - "v*"
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   build:
@@ -45,10 +49,25 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Detected version: $VERSION"
 
+      - name: Resolve release/tag ref
+        id: release-ref
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$EVENT_NAME" = "release" ]; then
+            TAG="$RELEASE_TAG"
+          else
+            TAG="$REF_NAME"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Resolved tag: $TAG"
+
       - name: Validate release tag matches package version
         env:
           PACKAGE_VERSION: ${{ steps.package-version.outputs.version }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ steps.release-ref.outputs.tag }}
         run: |
           EXPECTED_TAG="v$PACKAGE_VERSION"
           if [ "$RELEASE_TAG" != "$EXPECTED_TAG" ]; then
