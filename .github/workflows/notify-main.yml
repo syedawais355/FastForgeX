@@ -1,0 +1,35 @@
+name: Notify Main Changes
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  email-main-change:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send email for main branch change
+        if: secrets.SMTP_SERVER != '' && secrets.SMTP_USERNAME != '' && secrets.SMTP_PASSWORD != '' && secrets.NOTIFY_EMAIL_TO != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT || '587' }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          secure: false
+          to: ${{ secrets.NOTIFY_EMAIL_TO }}
+          from: ${{ secrets.SMTP_USERNAME }}
+          subject: "[FastForgeX] main updated: ${{ github.sha }}"
+          body: |
+            A change was merged/pushed to main.
+
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Actor: ${{ github.actor }}
+            Message: ${{ github.event.head_commit.message }}
+            Compare: ${{ github.event.compare }}

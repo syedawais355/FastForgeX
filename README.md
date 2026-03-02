@@ -1,6 +1,6 @@
 # FastForgeX
 
-[![PyPI version](https://img.shields.io/pypi/v/fastforgex.svg?logo=python&logoColor=white)](https://pypi.org/project/fastforgex/0.1.0/)
+[![PyPI version](https://img.shields.io/pypi/v/fastforgex.svg?logo=python&logoColor=white)](https://pypi.org/project/fastforgex/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -459,6 +459,26 @@ Runs on every push and pull request to `main`:
 3. Run `ruff check .` and `black --check .` (if lint is enabled)
 4. Run `pytest` (if tests are enabled)
 5. Starts a PostgreSQL 16 service container when DB is PostgreSQL
+
+#### Repository release automation
+
+This repository includes additional root workflows:
+- `.github/workflows/publish.yml`: publishes to PyPI on every push to `main` (including merged PRs), on Release creation, or manual dispatch.
+- `.github/workflows/notify-main.yml`: sends an email on every push to `main`.
+
+`publish.yml` also validates that:
+1. `pyproject.toml` contains a version not already present on PyPI.
+2. Built wheel metadata version matches `fastforgex --version`.
+
+Required GitHub repository secrets for notifications:
+- `SMTP_SERVER`
+- `SMTP_PORT` (optional, defaults to `587`)
+- `SMTP_USERNAME`
+- `SMTP_PASSWORD`
+- `NOTIFY_EMAIL_TO`
+
+Required GitHub repository secret for publishing:
+- `PYPI_API_TOKEN`
 
 #### `Makefile` (with `--makefile`)
 

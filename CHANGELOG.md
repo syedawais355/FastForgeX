@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-03-03
+
+### Fixed
+- CLI version reporting now resolves from installed package metadata with a source fallback, preventing stale hardcoded version output.
+- Added automated wheel verification in CI/publish workflows to ensure `fastforgex --version` matches wheel metadata before release.
+- Publish workflow now runs on pushes to `main` (including merged PRs) and blocks publishing if the version already exists on PyPI.
+
+### Added
+- Email notifications for every change pushed to `main`.
+- Email notifications for PyPI publish success/failure outcomes.
+
 ## [0.1.1] - 2026-03-02
 
 ### Fixed
@@ -35,5 +46,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full type hints across all modules
 - Comprehensive documentation and examples
 
+[0.1.2]: https://github.com/syedawais355/FastForgeX/releases/tag/v0.1.2
 [0.1.1]: https://github.com/syedawais355/FastForgeX/releases/tag/v0.1.1
 [0.1.0]: https://github.com/syedawais355/FastForgeX/releases/tag/v0.1.0
