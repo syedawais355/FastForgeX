@@ -80,19 +80,17 @@ jobs:
           fi
           echo "Release tag matches package version: $RELEASE_TAG"
 
-      - name: Validate release commit is current main HEAD
+      - name: Validate release commit is on main branch
         env:
           RELEASE_SHA: ${{ github.sha }}
         run: |
-          git fetch origin main --depth=1
-          MAIN_SHA=$(git rev-parse origin/main)
-          if [ "$RELEASE_SHA" != "$MAIN_SHA" ]; then
-            echo "Release commit is not the latest main commit."
-            echo "main HEAD:    $MAIN_SHA"
-            echo "release SHA:  $RELEASE_SHA"
+          git fetch origin main --depth=100
+          if ! git merge-base --is-ancestor "$RELEASE_SHA" origin/main; then
+            echo "Release commit $RELEASE_SHA is not an ancestor of origin/main."
+            echo "This release must be based on a commit that exists in the main branch."
             exit 1
           fi
-          echo "Release commit is aligned with main HEAD."
+          echo "Release commit is verified to be on the main branch history."
 
       - name: Build distribution
         run: python -m build
