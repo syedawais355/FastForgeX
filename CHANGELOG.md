@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Publish workflow now validates release tag/version alignment and release commit alignment with `main` to prevent outdated artifact releases.
 - CI now blocks PRs that change package source without a corresponding `pyproject.toml` version bump.
 - CI/publish now verify wheel package files exactly match repository source files.
+- Publish workflow now handles already-published versions idempotently by skipping upload instead of failing the run.
 
 ### Added
 - Email notifications for every change pushed to `main`.

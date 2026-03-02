@@ -472,6 +472,7 @@ This repository includes additional root workflows:
 3. `pyproject.toml` version is not already present on PyPI.
 4. Built wheel metadata version matches `fastforgex --version`.
 5. Built wheel package files exactly match repository `fastforgex/` source files.
+6. If a version is already published, the workflow skips upload and exits successfully (idempotent release runs).
 
 `ci.yml` also enforces that any PR changing files under `fastforgex/` must bump `project.version` in `pyproject.toml`.
 
