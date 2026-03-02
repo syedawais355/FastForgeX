@@ -60,24 +60,7 @@ def _resolve_cli_version() -> str:
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option(version=_resolve_cli_version(), prog_name="fastforgex")
 def cli() -> None:
-    """🚀 FastForgeX: The Ultimate FastAPI Project Scaffolder.
-
-    FastForgeX helps you bootstrap production-ready FastAPI applications with 
-    best practices, batteries-included configurations, and modular architecture.
-
-    \b
-    CORE FEATURES:
-    • 🛠️  Multiple Presets (Minimal, API, Full)
-    • 🗄️  Database Support (SQLite, PostgreSQL)
-    • 🔗  ORM Integration (SQLAlchemy)
-    • 🐳  Docker & Docker Compose Ready
-    • 🧪  Pytest Suite & Coverage
-    • 🧹  Linting (Ruff, Black) & Pre-commit
-    • 👷  CI/CD (GitHub Actions)
-    • 📝  Automated Alembic Migrations
-
-    Run 'fastforgex new --help' for detailed project creation options.
-    """
+    """🚀 FastForgeX: The Ultimate FastAPI Project Scaffolder."""
 
 
 @cli.command(
@@ -159,18 +142,7 @@ def new(
     output: str,
     dry_run: bool,
 ) -> None:
-    """✨ Bootstrap a new FastAPI project.
-
-    If PROJECT_NAME or options are missing, FastForgeX will guide you 
-    through an interactive setup process.
-
-    \b
-    USAGE EXAMPLES:
-      $ fastforgex new                               # Interactive mode
-      $ fastforgex new my-app --preset full          # Use 'full' stack preset
-      $ fastforgex new my-app --db sqlite --tests    # Custom configuration
-      $ fastforgex new my-app --dry-run              # Preview file structure
-    """
+    """✨ Bootstrap a new FastAPI project with best practices."""
     if preset:
         if not project_name:
             project_name = click.prompt("Project name")
