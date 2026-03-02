@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - CLI version reporting now resolves from installed package metadata with a source fallback, preventing stale hardcoded version output.
 - Added automated wheel verification in CI/publish workflows to ensure `fastforgex --version` matches wheel metadata before release.
-- Publish workflow now runs on pushes to `main` (including merged PRs) and blocks publishing if the version already exists on PyPI.
+- Publish workflow now runs from GitHub Release publishing and blocks publishing if the version already exists on PyPI.
+- Publish workflow now validates release tag/version alignment and release commit alignment with `main` to prevent outdated artifact releases.
 
 ### Added
 - Email notifications for every change pushed to `main`.

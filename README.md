@@ -463,12 +463,20 @@ Runs on every push and pull request to `main`:
 #### Repository release automation
 
 This repository includes additional root workflows:
-- `.github/workflows/publish.yml`: publishes to PyPI on every push to `main` (including merged PRs), on Release creation, or manual dispatch.
+- `.github/workflows/publish.yml`: publishes to PyPI when a GitHub Release is published.
 - `.github/workflows/notify-main.yml`: sends an email on every push to `main`.
 
 `publish.yml` also validates that:
-1. `pyproject.toml` contains a version not already present on PyPI.
-2. Built wheel metadata version matches `fastforgex --version`.
+1. Release tag matches `pyproject.toml` version (`vX.Y.Z`).
+2. Release commit equals current `main` HEAD.
+3. `pyproject.toml` version is not already present on PyPI.
+4. Built wheel metadata version matches `fastforgex --version`.
+
+Recommended release flow:
+1. Merge all changes to `main`.
+2. Bump `version` in `pyproject.toml` and update `CHANGELOG.md`.
+3. Create and push tag `vX.Y.Z` from `main`.
+4. Publish a GitHub Release for that tag.
 
 Required GitHub repository secrets for notifications:
 - `SMTP_SERVER`
