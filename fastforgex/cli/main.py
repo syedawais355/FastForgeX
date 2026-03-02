@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import click
 
@@ -58,26 +57,74 @@ def cli() -> None:
 
 @cli.command()
 @click.argument("project_name", required=False)
-@click.option("--db", type=click.Choice(["none", "sqlite", "postgresql"]), default=None, help="Database backend.")
-@click.option("--orm", type=click.Choice(["none", "sqlalchemy"]), default=None, help="ORM (auto-selected when DB is chosen).")
-@click.option("--docker", is_flag=True, default=False, help="Add Dockerfile and entrypoint.")
-@click.option("--tests", is_flag=True, default=False, help="Add pytest scaffold.")
-@click.option("--lint", is_flag=True, default=False, help="Add ruff, black, and pre-commit config.")
-@click.option("--ci", is_flag=True, default=False, help="Add GitHub Actions CI workflow.")
-@click.option("--makefile", is_flag=True, default=False, help="Add Makefile with common targets.")
-@click.option("--preset", type=click.Choice(["minimal", "api", "full"]), default=None, help="Use a predefined configuration.")
-@click.option("--output", "-o", default=".", show_default=True, help="Directory to generate the project in.")
-@click.option("--dry-run", is_flag=True, default=False, help="Show what would be generated without writing files.")
+@click.option(
+    "--db",
+    type=click.Choice(["none", "sqlite", "postgresql"]),
+    default=None,
+    help="Database backend.",
+)
+@click.option(
+    "--orm",
+    type=click.Choice(["none", "sqlalchemy"]),
+    default=None,
+    help="ORM (auto-selected when DB is chosen).",
+)
+@click.option(
+    "--docker",
+    is_flag=True,
+    default=False,
+    help="Add Dockerfile and entrypoint.",
+)
+@click.option(
+    "--tests", is_flag=True, default=False, help="Add pytest scaffold."
+)
+@click.option(
+    "--lint",
+    is_flag=True,
+    default=False,
+    help="Add ruff, black, and pre-commit config.",
+)
+@click.option(
+    "--ci",
+    is_flag=True,
+    default=False,
+    help="Add GitHub Actions CI workflow.",
+)
+@click.option(
+    "--makefile",
+    is_flag=True,
+    default=False,
+    help="Add Makefile with common targets.",
+)
+@click.option(
+    "--preset",
+    type=click.Choice(["minimal", "api", "full"]),
+    default=None,
+    help="Use a predefined configuration.",
+)
+@click.option(
+    "--output",
+    "-o",
+    default=".",
+    show_default=True,
+    help="Directory to generate the project in.",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Show what would be generated without writing files.",
+)
 def new(
-    project_name: Optional[str],
-    db: Optional[str],
-    orm: Optional[str],
+    project_name: str | None,
+    db: str | None,
+    orm: str | None,
     docker: bool,
     tests: bool,
     lint: bool,
     ci: bool,
     makefile: bool,
-    preset: Optional[str],
+    preset: str | None,
     output: str,
     dry_run: bool,
 ) -> None:
@@ -124,10 +171,10 @@ def new(
 
     try:
         root = generate(config, out)
-    except FileExistsError:
+    except FileExistsError as exc:
         raise click.ClickException(
             f"Directory '{config.project_name}' already exists in {out}."
-        )
+        ) from exc
 
     _print_success(config, root)
 
