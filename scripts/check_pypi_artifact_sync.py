@@ -1,35 +1,47 @@
-"""Check whether local release artifacts match already-published PyPI artifacts."""
-
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
 import os
+import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
 
-import tomllib
-
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Compare local dist artifacts with PyPI artifacts for current project version."
+        description="Compare local dist artifacts with published PyPI artifacts."
     )
-    parser.add_argument(
-        "--dist-dir",
-        default="dist",
-        help="Directory containing local build artifacts.",
-    )
+    parser.add_argument("--dist-dir", default="dist", help="Directory containing build artifacts.")
     return parser.parse_args()
 
 
-def _project_identity(pyproject_path: Path) -> tuple[str, str]:
-    with pyproject_path.open("rb") as f:
-        data = tomllib.load(f)
-    project = data["project"]
-    return str(project["name"]), str(project["version"])
+def _load_toml(path: Path) -> dict:  # type: ignore[type-arg]
+    if sys.version_info >= (3, 11):
+        import tomllib
+        with path.open("rb") as f:
+            return tomllib.load(f)
+    try:
+        import tomllib  # type: ignore[no-redef]
+        with path.open("rb") as f:
+            return tomllib.load(f)
+    except ImportError:
+        pass
+    try:
+        import tomli  # type: ignore[import]
+        with path.open("rb") as f:
+            return tomli.load(f)
+    except ImportError:
+        pass
+    import re
+    text = path.read_text(encoding="utf-8")
+    match = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
+    name_match = re.search(r'^name\s*=\s*"([^"]+)"', text, re.MULTILINE)
+    if match and name_match:
+        return {"project": {"name": name_match.group(1), "version": match.group(1)}}
+    raise RuntimeError("Cannot parse pyproject.toml: install tomli for Python < 3.11.")
 
 
 def _sha256_file(path: Path) -> str:
@@ -43,14 +55,10 @@ def _sha256_file(path: Path) -> str:
 def _local_artifacts(dist_dir: Path, package: str, version: str) -> list[Path]:
     wheel_pattern = f"{package.replace('-', '_')}-{version}-*.whl"
     sdist_name = f"{package}-{version}.tar.gz"
-    wheels = sorted(dist_dir.glob(wheel_pattern))
+    artifacts: list[Path] = sorted(dist_dir.glob(wheel_pattern))
     sdist = dist_dir / sdist_name
-
-    artifacts: list[Path] = []
-    artifacts.extend(wheels)
     if sdist.exists():
         artifacts.append(sdist)
-
     if not artifacts:
         raise FileNotFoundError(f"No artifacts found for {package}=={version} in {dist_dir}.")
     return artifacts
@@ -65,12 +73,10 @@ def _pypi_release_files(package: str, version: str) -> tuple[bool, dict[str, str
         if exc.code == 404:
             return False, {}
         raise
-
     files: dict[str, str] = {}
     for item in payload.get("urls", []):
         filename = item.get("filename")
-        digests = item.get("digests", {})
-        sha256 = digests.get("sha256")
+        sha256 = (item.get("digests") or {}).get("sha256")
         if filename and sha256:
             files[str(filename)] = str(sha256)
     return True, files
@@ -88,13 +94,15 @@ def _set_github_outputs(exists: bool, identical: bool) -> None:
 def main() -> int:
     args = _parse_args()
     dist_dir = Path(args.dist_dir).resolve()
-    package, version = _project_identity(Path("pyproject.toml"))
+    data = _load_toml(Path("pyproject.toml"))
+    package = str(data["project"]["name"])
+    version = str(data["project"]["version"])
     artifacts = _local_artifacts(dist_dir, package, version)
 
     exists, remote_files = _pypi_release_files(package, version)
     if not exists:
         _set_github_outputs(exists=False, identical=False)
-        print(f"PyPI does not have {package}=={version}.")
+        print(f"PyPI does not have {package}=={version}. Ready to publish.")
         return 0
 
     mismatches: list[str] = []
@@ -103,20 +111,18 @@ def main() -> int:
         remote_sha = remote_files.get(artifact.name)
         if not remote_sha:
             mismatches.append(f"{artifact.name}: missing on PyPI")
-            continue
-        if local_sha != remote_sha:
-            mismatches.append(f"{artifact.name}: local={local_sha} pypi={remote_sha}")
+        elif local_sha != remote_sha:
+            mismatches.append(f"{artifact.name}: local={local_sha[:12]} pypi={remote_sha[:12]}")
 
     if mismatches:
         _set_github_outputs(exists=True, identical=False)
-        print(f"PyPI already has {package}=={version}, but artifacts differ.")
+        print(f"PyPI has {package}=={version} but artifacts differ. Bump the version.", file=sys.stderr)
         for mismatch in mismatches:
-            print(f"  - {mismatch}")
-        print("Bump [project].version before publishing changes.")
+            print(f"  {mismatch}", file=sys.stderr)
         return 1
 
     _set_github_outputs(exists=True, identical=True)
-    print(f"PyPI already has {package}=={version} with identical artifacts.")
+    print(f"PyPI already has identical artifacts for {package}=={version}. Skipping publish.")
     return 0
 
 

@@ -463,33 +463,24 @@ Runs on every push and pull request to `main`:
 #### Repository release automation
 
 This repository includes additional root workflows:
-- `.github/workflows/publish.yml`: publishes to PyPI when a GitHub Release is published.
-- `.github/workflows/notify-main.yml`: sends an email on every push to `main`.
+- `.github/workflows/publish.yml`: handles automated release and publishing to PyPI.
 
-`publish.yml` also validates that:
-1. Release tag matches `pyproject.toml` version (`vX.Y.Z`).
-2. Release commit equals current `main` HEAD.
-3. `pyproject.toml` version is not already present on PyPI.
-4. Built wheel metadata version matches `fastforgex --version`.
-5. Built wheel package files exactly match repository `fastforgex/` source files.
-6. If a version is already published:
-   - it skips only when artifacts are byte-identical to PyPI,
-   - it fails when artifacts differ (forcing a version bump).
+`publish.yml` performs extensive validation:
+1. Verifies that the release version matches `pyproject.toml`.
+2. Checks if the version already exists on PyPI.
+3. Builds and verifies the distribution (wheels and sdist).
+4. Automates GitHub Release creation with notes extracted from `CHANGELOG.md`.
+5. Publishes to PyPI using trusted publishing.
 
-`ci.yml` also enforces that any PR changing files under `fastforgex/` must bump `project.version` in `pyproject.toml`.
+`ci.yml` ensures code quality and versioning:
+- Runs tests across multiple Python versions (3.8 - 3.13).
+- Performs linting (ruff, black) and type checking (mypy).
+- Enforces version bumps in `pyproject.toml` for any changes to the `fastforgex/` package.
 
 Recommended release flow:
-1. Merge all changes to `main`.
-2. Bump `version` in `pyproject.toml` and update `CHANGELOG.md`.
-3. Create and push tag `vX.Y.Z` from `main`.
-4. Publish a GitHub Release for that tag.
-
-Required GitHub repository secrets for notifications:
-- `SMTP_SERVER`
-- `SMTP_PORT` (optional, defaults to `587`)
-- `SMTP_USERNAME`
-- `SMTP_PASSWORD`
-- `NOTIFY_EMAIL_TO`
+1. Merge all changes to `main` via Pull Request.
+2. Ensure `version` in `pyproject.toml` is bumped and `CHANGELOG.md` is updated.
+3. The `Publish` workflow will automatically handle the rest on merge to `main`.
 
 Required GitHub repository secret for publishing:
 - `PYPI_API_TOKEN`
