@@ -75,9 +75,7 @@ def cli() -> None:
     default=False,
     help="Add Dockerfile and entrypoint.",
 )
-@click.option(
-    "--tests", is_flag=True, default=False, help="Add pytest scaffold."
-)
+@click.option("--tests", is_flag=True, default=False, help="Add pytest scaffold.")
 @click.option(
     "--lint",
     is_flag=True,
@@ -156,6 +154,7 @@ def new(
 
     else:
         from fastforgex.cli.prompts import run_interactive
+
         raw = run_interactive(project_name)
 
     try:

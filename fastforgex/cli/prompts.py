@@ -7,15 +7,17 @@ from questionary import Style
 
 from fastforgex.engine.config import ProjectConfig, validate_project_name
 
-_STYLE = Style([
-    ("qmark", "fg:#00d7af bold"),
-    ("question", "bold"),
-    ("answer", "fg:#00d7af bold"),
-    ("pointer", "fg:#00d7af bold"),
-    ("highlighted", "fg:#00d7af bold"),
-    ("selected", "fg:#00d7af"),
-    ("separator", "fg:#6c6c6c"),
-])
+_STYLE = Style(
+    [
+        ("qmark", "fg:#00d7af bold"),
+        ("question", "bold"),
+        ("answer", "fg:#00d7af bold"),
+        ("pointer", "fg:#00d7af bold"),
+        ("highlighted", "fg:#00d7af bold"),
+        ("selected", "fg:#00d7af"),
+        ("separator", "fg:#6c6c6c"),
+    ]
+)
 
 
 def run_interactive(project_name: str | None = None) -> ProjectConfig:
