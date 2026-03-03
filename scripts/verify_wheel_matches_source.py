@@ -10,7 +10,11 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Verify the built wheel contains files identical to the repository source."
     )
-    parser.add_argument("--dist-dir", default="dist", help="Directory containing built wheels.")
+    parser.add_argument(
+        "--dist-dir",
+        default="dist",
+        help="Directory containing built wheels.",
+    )
     return parser.parse_args()
 
 

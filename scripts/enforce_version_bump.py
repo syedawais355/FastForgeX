@@ -26,18 +26,22 @@ def _changed_files(base: str, head: str) -> list[str]:
 def _load_toml(text: str) -> dict:  # type: ignore[type-arg]
     if sys.version_info >= (3, 11):
         import tomllib
+
         return tomllib.loads(text)
     try:
         import tomllib  # type: ignore[no-redef]
+
         return tomllib.loads(text)
     except ImportError:
         pass
     try:
         import tomli  # type: ignore[import]
+
         return tomli.loads(text)
     except ImportError:
         pass
     import re
+
     match = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
     if match:
         return {"project": {"version": match.group(1)}}

@@ -78,13 +78,19 @@ def cli() -> None:
     help="ORM layer. Defaults to 'sqlalchemy' when a database is selected.",
 )
 @click.option(
-    "--docker", is_flag=True, default=False, help="Generate Dockerfile and .dockerignore."
+    "--docker",
+    is_flag=True,
+    default=False,
+    help="Generate Dockerfile and .dockerignore.",
 )
 @click.option("--tests", is_flag=True, default=False, help="Include a pytest suite.")
 @click.option("--lint", is_flag=True, default=False, help="Setup Ruff, Black, and pre-commit.")
 @click.option("--ci", is_flag=True, default=False, help="Include a GitHub Actions CI workflow.")
 @click.option(
-    "--makefile", is_flag=True, default=False, help="Add a Makefile with common shortcuts."
+    "--makefile",
+    is_flag=True,
+    default=False,
+    help="Add a Makefile with common shortcuts.",
 )
 @click.option(
     "--preset",
@@ -100,7 +106,10 @@ def cli() -> None:
     help="Target directory for the new project folder.",
 )
 @click.option(
-    "--dry-run", is_flag=True, default=False, help="Preview file structure without writing."
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Preview file structure without writing.",
 )
 def new(
     project_name: str | None,

@@ -14,28 +14,36 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Compare local dist artifacts with published PyPI artifacts."
     )
-    parser.add_argument("--dist-dir", default="dist", help="Directory containing build artifacts.")
+    parser.add_argument(
+        "--dist-dir",
+        default="dist",
+        help="Directory containing build artifacts.",
+    )
     return parser.parse_args()
 
 
 def _load_toml(path: Path) -> dict:  # type: ignore[type-arg]
     if sys.version_info >= (3, 11):
         import tomllib
+
         with path.open("rb") as f:
             return tomllib.load(f)
     try:
         import tomllib  # type: ignore[no-redef]
+
         with path.open("rb") as f:
             return tomllib.load(f)
     except ImportError:
         pass
     try:
         import tomli  # type: ignore[import]
+
         with path.open("rb") as f:
             return tomli.load(f)
     except ImportError:
         pass
     import re
+
     text = path.read_text(encoding="utf-8")
     match = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
     name_match = re.search(r'^name\s*=\s*"([^"]+)"', text, re.MULTILINE)
@@ -60,7 +68,9 @@ def _local_artifacts(dist_dir: Path, package: str, version: str) -> list[Path]:
     if sdist.exists():
         artifacts.append(sdist)
     if not artifacts:
-        raise FileNotFoundError(f"No artifacts found for {package}=={version} in {dist_dir}.")
+        raise FileNotFoundError(
+            f"No artifacts found for {package}=={version} in {dist_dir}."
+        )
     return artifacts
 
 
@@ -112,7 +122,9 @@ def main() -> int:
         if not remote_sha:
             mismatches.append(f"{artifact.name}: missing on PyPI")
         elif local_sha != remote_sha:
-            mismatches.append(f"{artifact.name}: local={local_sha[:12]} pypi={remote_sha[:12]}")
+            mismatches.append(
+                f"{artifact.name}: local={local_sha[:12]} pypi={remote_sha[:12]}"
+            )
 
     if mismatches:
         _set_github_outputs(exists=True, identical=False)
