@@ -68,9 +68,7 @@ def _local_artifacts(dist_dir: Path, package: str, version: str) -> list[Path]:
     if sdist.exists():
         artifacts.append(sdist)
     if not artifacts:
-        raise FileNotFoundError(
-            f"No artifacts found for {package}=={version} in {dist_dir}."
-        )
+        raise FileNotFoundError(f"No artifacts found for {package}=={version} in {dist_dir}.")
     return artifacts
 
 
@@ -122,9 +120,7 @@ def main() -> int:
         if not remote_sha:
             mismatches.append(f"{artifact.name}: missing on PyPI")
         elif local_sha != remote_sha:
-            mismatches.append(
-                f"{artifact.name}: local={local_sha[:12]} pypi={remote_sha[:12]}"
-            )
+            mismatches.append(f"{artifact.name}: local={local_sha[:12]} pypi={remote_sha[:12]}")
 
     if mismatches:
         _set_github_outputs(exists=True, identical=False)
