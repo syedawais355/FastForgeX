@@ -128,6 +128,7 @@ def new(
     if preset:
         if not project_name:
             project_name = click.prompt("Project name")
+        assert isinstance(project_name, str)
         try:
             project_name = validate_project_name(project_name)
         except ValueError as exc:
