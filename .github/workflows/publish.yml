@@ -1,28 +1,21 @@
-name: Publish to PyPI
+name: Publish
 
 on:
-  release:
-    types:
-      - published
   push:
-    tags:
-      - "v*"
+    branches: [main]
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
+concurrency:
+  group: publish-main
+  cancel-in-progress: false
+
 jobs:
-  build:
+  publish:
+    name: Release and publish to PyPI
     runs-on: ubuntu-latest
-    env:
-      SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-      SMTP_PORT: ${{ secrets.SMTP_PORT }}
-      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
-      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-      NOTIFY_EMAIL_TO: ${{ secrets.NOTIFY_EMAIL_TO }}
-    outputs:
-      package_version: ${{ steps.package-version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -33,137 +26,135 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
 
-      - name: Install build dependencies
-        run: pip install build twine
-
-      - name: Resolve package version
-        id: package-version
+      - name: Install build tools
         run: |
-          VERSION=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Detected version: $VERSION"
+          pip install --upgrade pip
+          pip install build twine
 
-      - name: Resolve package name
-        id: package-name
+      - name: Resolve package metadata
+        id: pkg
         run: |
-          NAME=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["name"])')
-          echo "name=$NAME" >> "$GITHUB_OUTPUT"
-          echo "Detected name: $NAME"
+          python - << 'PYEOF'
+          import sys
+          if sys.version_info >= (3, 11):
+              import tomllib
+          else:
+              try:
+                  import tomllib
+              except ImportError:
+                  import tomli as tomllib
+          import os
+          with open("pyproject.toml", "rb") as f:
+              data = tomllib.load(f)
+          name = data["project"]["name"]
+          version = data["project"]["version"]
+          out = os.environ.get("GITHUB_OUTPUT", "")
+          if out:
+              with open(out, "a") as f:
+                  f.write(f"name={name}\n")
+                  f.write(f"version={version}\n")
+          print(f"name={name} version={version}")
+          PYEOF
 
-      - name: Resolve release/tag ref
-        id: release-ref
+      - name: Check if version already exists on PyPI
+        id: pypi_check
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-          REF_NAME: ${{ github.ref_name }}
+          PACKAGE_NAME: ${{ steps.pkg.outputs.name }}
+          PACKAGE_VERSION: ${{ steps.pkg.outputs.version }}
         run: |
-          if [ "$EVENT_NAME" = "release" ]; then
-            TAG="$RELEASE_TAG"
-          else
-            TAG="$REF_NAME"
-          fi
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Resolved tag: $TAG"
-
-      - name: Validate release tag matches package version
-        env:
-          PACKAGE_VERSION: ${{ steps.package-version.outputs.version }}
-          RELEASE_TAG: ${{ steps.release-ref.outputs.tag }}
-        run: |
-          EXPECTED_TAG="v$PACKAGE_VERSION"
-          if [ "$RELEASE_TAG" != "$EXPECTED_TAG" ]; then
-            echo "Release tag mismatch."
-            echo "Expected: $EXPECTED_TAG"
-            echo "Actual:   $RELEASE_TAG"
-            exit 1
-          fi
-          echo "Release tag matches package version: $RELEASE_TAG"
-
-      - name: Validate release commit is on main branch
-        env:
-          RELEASE_SHA: ${{ github.sha }}
-        run: |
-          git fetch origin main --depth=100
-          if ! git merge-base --is-ancestor "$RELEASE_SHA" origin/main; then
-            echo "Release commit $RELEASE_SHA is not an ancestor of origin/main."
-            echo "This release must be based on a commit that exists in the main branch."
-            exit 1
-          fi
-          echo "Release commit is verified to be on the main branch history."
+          python - << 'PYEOF'
+          import json, os, urllib.error, urllib.request
+          name = os.environ["PACKAGE_NAME"]
+          ver = os.environ["PACKAGE_VERSION"]
+          url = f"https://pypi.org/pypi/{name}/{ver}/json"
+          exists = False
+          try:
+              with urllib.request.urlopen(url) as resp:
+                  json.loads(resp.read().decode("utf-8"))
+              exists = True
+          except urllib.error.HTTPError as exc:
+              if exc.code != 404:
+                  raise
+          out = os.environ.get("GITHUB_OUTPUT", "")
+          if out:
+              with open(out, "a") as f:
+                  f.write(f"exists={'true' if exists else 'false'}\n")
+          print(f"PyPI version exists: {exists}")
+          PYEOF
 
       - name: Build distribution
         run: python -m build
 
-      - name: Verify wheel matches source files
+      - name: Verify wheel matches source
         run: python scripts/verify_wheel_matches_source.py --dist-dir dist
 
       - name: Verify wheel CLI version
         run: python scripts/verify_wheel_version.py --dist-dir dist
 
-      - name: Check distribution
+      - name: Check distribution integrity
         run: twine check dist/*
 
-      - name: Check PyPI artifact sync for this version
-        id: pypi-sync
-        run: python scripts/check_pypi_artifact_sync.py --dist-dir dist
+      - name: Configure git identity
+        if: steps.pypi_check.outputs.exists != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push version tag
+        if: steps.pypi_check.outputs.exists != 'true'
+        env:
+          VERSION: ${{ steps.pkg.outputs.version }}
+        run: |
+          TAG="v${VERSION}"
+          if git rev-parse "${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists, skipping tag creation."
+          else
+            git tag "${TAG}"
+            git push origin "${TAG}"
+            echo "Created and pushed tag: ${TAG}"
+          fi
+
+      - name: Extract release notes from CHANGELOG
+        if: steps.pypi_check.outputs.exists != 'true'
+        env:
+          VERSION: ${{ steps.pkg.outputs.version }}
+        run: |
+          python - << 'PYEOF'
+          import re, os
+          from pathlib import Path
+          version = os.environ["VERSION"]
+          content = Path("CHANGELOG.md").read_text(encoding="utf-8")
+          pattern = rf"## \[{re.escape(version)}\] - \d{{4}}-\d{{2}}-\d{{2}}(.*?)(?=## \[|\Z)"
+          match = re.search(pattern, content, re.DOTALL)
+          notes = match.group(1).strip() if match else f"Release v{version}"
+          Path("release_notes.md").write_text(notes, encoding="utf-8")
+          print(f"Extracted release notes for v{version}")
+          PYEOF
+
+      - name: Create GitHub Release
+        if: steps.pypi_check.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.pkg.outputs.version }}
+        run: |
+          TAG="v${VERSION}"
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists, skipping."
+          else
+            gh release create "${TAG}" \
+              --title "${TAG}" \
+              --notes-file release_notes.md
+            echo "Created GitHub Release: ${TAG}"
+          fi
 
       - name: Publish to PyPI
-        if: steps.pypi-sync.outputs.exists != 'true'
+        if: steps.pypi_check.outputs.exists != 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
 
-      - name: Report already published version
-        if: steps.pypi-sync.outputs.exists == 'true' && steps.pypi-sync.outputs.identical == 'true'
-        run: echo "Skipping publish because identical artifacts already exist on PyPI."
-
-      - name: Notify publish success by email
-        if: success() && env.SMTP_SERVER != '' && env.SMTP_USERNAME != '' && env.SMTP_PASSWORD != '' && env.NOTIFY_EMAIL_TO != ''
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ env.SMTP_SERVER }}
-          server_port: ${{ env.SMTP_PORT != '' && env.SMTP_PORT || '587' }}
-          username: ${{ env.SMTP_USERNAME }}
-          password: ${{ env.SMTP_PASSWORD }}
-          secure: false
-          to: ${{ env.NOTIFY_EMAIL_TO }}
-          from: ${{ env.SMTP_USERNAME }}
-          subject: "[FastForgeX] PyPI publish success ${{ steps.package-name.outputs.name }} v${{ steps.package-version.outputs.version }}"
-          body: |
-            FastForgeX publish workflow completed successfully.
-            
-            Package: ${{ steps.package-name.outputs.name }}
-            Version: v${{ steps.package-version.outputs.version }}
-            PyPI URL: https://pypi.org/project/${{ steps.package-name.outputs.name }}/${{ steps.package-version.outputs.version }}/
-            
-            Existing on PyPI before run: ${{ steps.pypi-sync.outputs.exists }}
-            Artifacts identical to PyPI: ${{ steps.pypi-sync.outputs.identical }}
-
-            Repository: ${{ github.repository }}
-            Branch/Ref: ${{ github.ref }}
-            Actor: ${{ github.actor }}
-            Workflow run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-      - name: Notify publish failure by email
-        if: failure() && env.SMTP_SERVER != '' && env.SMTP_USERNAME != '' && env.SMTP_PASSWORD != '' && env.NOTIFY_EMAIL_TO != ''
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ env.SMTP_SERVER }}
-          server_port: ${{ env.SMTP_PORT != '' && env.SMTP_PORT || '587' }}
-          username: ${{ env.SMTP_USERNAME }}
-          password: ${{ env.SMTP_PASSWORD }}
-          secure: false
-          to: ${{ env.NOTIFY_EMAIL_TO }}
-          from: ${{ env.SMTP_USERNAME }}
-          subject: "[FastForgeX] PyPI publish FAILED ${{ steps.package-name.outputs.name }} v${{ steps.package-version.outputs.version }}"
-          body: |
-            FastForgeX publish workflow failed.
-
-            Package: ${{ steps.package-name.outputs.name }}
-            Version: v${{ steps.package-version.outputs.version }}
-            
-            Repository: ${{ github.repository }}
-            Branch/Ref: ${{ github.ref }}
-            Actor: ${{ github.actor }}
-            Workflow run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      - name: Skip publish (version already on PyPI)
+        if: steps.pypi_check.outputs.exists == 'true'
+        run: echo "Version ${{ steps.pkg.outputs.version }} already exists on PyPI. Skipping publish."

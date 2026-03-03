@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fastforgex"
-version = "0.1.8"
+version = "0.1.9"
 description = "FastAPI project scaffolding CLI"
 readme = "README.md"
 license = { text = "MIT" }
@@ -39,6 +39,7 @@ dev = [
     "ruff>=0.5.0",
     "black>=24.4.0",
     "mypy>=1.8.0",
+    "tomli>=2.0.0 ; python_version < '3.11'",
 ]
 
 [project.scripts]
