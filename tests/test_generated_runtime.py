@@ -394,6 +394,10 @@ def test_project_name_in_settings(tmp_path: Path) -> None:
         "tests_full_nodb",
     ],
 )
+@pytest.mark.skipif(
+    sys.version_info < (3, 11),
+    reason="Generated projects target Python 3.12 (uses datetime.UTC, list[str])",
+)
 def test_live_pytest_no_db(tmp_path: Path, kwargs: dict[str, Any]) -> None:
     """Generate a no-DB project and actually run its own test suite."""
     root = _gen(tmp_path, **kwargs)
@@ -429,6 +433,10 @@ def test_live_pytest_no_db(tmp_path: Path, kwargs: dict[str, Any]) -> None:
         {"db": "sqlite", "tests": True, "lint": True},
     ],
     ids=["sqlite_tests", "sqlite_tests_lint"],
+)
+@pytest.mark.skipif(
+    sys.version_info < (3, 11),
+    reason="Generated projects target Python 3.12 (uses datetime.UTC, list[str])",
 )
 def test_live_pytest_sqlite(tmp_path: Path, kwargs: dict[str, Any]) -> None:
     """Generate a SQLite project and run its health test (no DB setup needed for /health)."""
