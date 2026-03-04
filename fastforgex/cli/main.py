@@ -151,6 +151,11 @@ def new(
             makefile=makefile,
         )
 
+    elif orm is not None and orm != "none" and db is None:
+        raise click.ClickException(
+            "--orm requires --db. Use --db sqlite or --db postgresql."
+        )
+
     elif project_name is not None and db is None and any([docker, tests, lint, ci, makefile]):
         raise click.ClickException(
             "Specify --db (or use --preset) when providing flags in non-interactive mode."
@@ -222,8 +227,10 @@ def _predict_files(config: ProjectConfig) -> list[str]:
             files.append("docker-compose.yml")
     if config.tests:
         files += ["tests/__init__.py", "tests/conftest.py", "tests/test_health.py"]
+    if config.tests or config.lint:
+        files.append("pyproject.toml")
     if config.lint:
-        files += ["pyproject.toml", ".pre-commit-config.yaml"]
+        files.append(".pre-commit-config.yaml")
     if config.ci:
         files.append(".github/workflows/ci.yml")
     if config.makefile:
