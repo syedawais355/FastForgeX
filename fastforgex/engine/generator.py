@@ -27,8 +27,11 @@ def generate(config: ProjectConfig, output_dir: Path) -> Path:
     if config.tests:
         _write_tests(root, v)
 
+    if config.tests or config.lint:
+        _write_pyproject(root, v)
+
     if config.lint:
-        _write_linting(root, v)
+        _write_pre_commit(root, v)
 
     if config.ci:
         _write_ci(root, v)
@@ -94,8 +97,11 @@ def _write_tests(root: Path, v: dict[str, object]) -> None:
     _put(tests / "test_health.py", render("tests/test_health.py.j2", v))
 
 
-def _write_linting(root: Path, v: dict[str, object]) -> None:
+def _write_pyproject(root: Path, v: dict[str, object]) -> None:
     _put(root / "pyproject.toml", render("linting/pyproject.toml.j2", v))
+
+
+def _write_pre_commit(root: Path, v: dict[str, object]) -> None:
     _put(root / ".pre-commit-config.yaml", render("linting/pre-commit-config.yaml.j2", v))
 
 
