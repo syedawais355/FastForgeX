@@ -397,6 +397,12 @@ def test_project_name_in_settings(tmp_path: Path) -> None:
 def test_live_pytest_no_db(tmp_path: Path, kwargs: dict[str, Any]) -> None:
     """Generate a no-DB project and actually run its own test suite."""
     root = _gen(tmp_path, **kwargs)
+    subprocess.run(
+        [sys.executable, "-m", "pip", "install", "-r", "requirements.txt", "-q"],
+        cwd=str(root),
+        check=True,
+        timeout=120,
+    )
     result = subprocess.run(
         [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short"],
         cwd=str(root),
@@ -438,6 +444,13 @@ def test_live_pytest_sqlite(tmp_path: Path, kwargs: dict[str, Any]) -> None:
         "DATABASE_URL": "sqlite+aiosqlite:///./test.db",
         "APP_ENV": "test",
     }
+    subprocess.run(
+        [sys.executable, "-m", "pip", "install", "-r", "requirements.txt", "-q"],
+        cwd=str(root),
+        check=True,
+        timeout=120,
+        env=env,
+    )
     result = subprocess.run(
         [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short"],
         cwd=str(root),
