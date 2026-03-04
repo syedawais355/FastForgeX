@@ -1,4 +1,4 @@
-.PHONY: install run test lint format {% if use_db %}migrate {% endif %}{% if docker %}build up down {% endif %}help
+.PHONY: install run {% if tests %}test test-cov {% endif %}{% if lint %}lint format {% endif %}{% if use_db %}migrate migration rollback {% endif %}{% if docker %}build up {% if db == "postgresql" %}down {% endif %}{% endif %}help
 
 install:
 	pip install -r requirements.txt
@@ -52,15 +52,49 @@ up:
 {% endif %}
 
 help:
-	@echo "Available targets:"
-	@echo "  install     install dependencies"
-	@echo "  run         start dev server"
-{% if tests %}	@echo "  test        run tests"
-{% endif %}{% if lint %}	@echo "  lint        check code style"
-	@echo "  format      auto-fix code style"
-{% endif %}{% if use_db %}	@echo "  migrate     apply database migrations"
-	@echo "  migration   create a new migration (make migration name=...)"
-{% endif %}{% if docker %}	@echo "  build       build docker image"
-	@echo "  up          start containers"
-	@echo "  down        stop containers"
+	@printf "\n\033[1;36m  {{ project_name }}\033[0m  \033[2m*  FastAPI project\033[0m\n"
+	@printf "  \033[2m--------------------------------------------------------------\033[0m\n\n"
+	@printf "  \033[1mSETUP\033[0m\n"
+	@printf "  \033[36m  install\033[0m          Install all project dependencies\n"
+	@printf "  \033[2m             ->  pip install -r requirements.txt\033[0m\n\n"
+	@printf "  \033[1mDEVELOPMENT\033[0m\n"
+	@printf "  \033[36m  run\033[0m              Start the development server with hot-reload\n"
+	@printf "  \033[2m             ->  uvicorn app.main:app --reload   (http://localhost:8000)\033[0m\n\n"
+{% if tests %}
+	@printf "  \033[1mTESTING\033[0m\n"
+	@printf "  \033[36m  test\033[0m             Run the full test suite\n"
+	@printf "  \033[2m             ->  pytest\033[0m\n"
+	@printf "  \033[36m  test-cov\033[0m         Run tests with a line-by-line coverage report\n"
+	@printf "  \033[2m             ->  pytest --cov=app --cov-report=term-missing\033[0m\n\n"
 {% endif %}
+{% if lint %}
+	@printf "  \033[1mCODE QUALITY\033[0m\n"
+	@printf "  \033[36m  lint\033[0m             Check code style -- ruff + black (read-only)\n"
+	@printf "  \033[2m             ->  ruff check . && black --check .\033[0m\n"
+	@printf "  \033[36m  format\033[0m           Auto-fix all style issues in-place\n"
+	@printf "  \033[2m             ->  ruff check . --fix && black .\033[0m\n\n"
+{% endif %}
+{% if use_db %}
+	@printf "  \033[1mDATABASE\033[0m\n"
+	@printf "  \033[36m  migrate\033[0m          Apply all pending Alembic migrations\n"
+	@printf "  \033[2m             ->  alembic upgrade head\033[0m\n"
+	@printf "  \033[36m  migration\033[0m        Generate a migration from current model changes\n"
+	@printf "  \033[2m             ->  make migration name=\"add users table\"\033[0m\n"
+	@printf "  \033[36m  rollback\033[0m         Revert the most recently applied migration\n"
+	@printf "  \033[2m             ->  alembic downgrade -1\033[0m\n\n"
+{% endif %}
+{% if docker %}
+	@printf "  \033[1mDOCKER\033[0m\n"
+	@printf "  \033[36m  build\033[0m            Build the production Docker image\n"
+	@printf "  \033[2m             ->  docker build -t {{ project_name }} .\033[0m\n"
+{% if db == "postgresql" %}
+	@printf "  \033[36m  up\033[0m               Start app + Postgres in detached containers\n"
+	@printf "  \033[2m             ->  docker compose up -d\033[0m\n"
+	@printf "  \033[36m  down\033[0m             Stop and remove all running containers\n"
+	@printf "  \033[2m             ->  docker compose down\033[0m\n\n"
+{% else %}
+	@printf "  \033[36m  up\033[0m               Run the container and expose port 8000\n"
+	@printf "  \033[2m             ->  docker run -p 8000:8000 --env-file .env {{ project_name }}\033[0m\n\n"
+{% endif %}
+{% endif %}
+	@printf "  \033[2mUsage: make <target>   Run from the project root.\033[0m\n\n"
