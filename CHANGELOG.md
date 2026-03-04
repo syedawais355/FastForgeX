@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.2.0] - 2026-03-05
+
+### Fixed
+- Generated `conftest.py` now correctly uses `@pytest_asyncio.fixture` instead of `@pytest.fixture` for async fixtures, fixing compatibility with pytest-asyncio ≥ 0.23 strict mode.
+- `pyproject.toml` is now generated whenever `--tests` or `--lint` is selected (previously only generated with `--lint`), ensuring `asyncio_mode = "auto"` is always set when tests are included.
+- Makefile `.PHONY` declaration now correctly includes `test-cov`, `migration`, and `rollback`, and conditionally includes `down` only when `--db postgresql --docker` is selected.
+- CLI now raises a clear error when `--orm` is specified without `--db` instead of falling into interactive mode.
+- Generated `app/core/logger.py` uses `datetime.UTC` (Python 3.12 target) and `app/core/config.py` uses `list[str]` with `from __future__ import annotations` — both consistent with the generated project's `target-version = "py312"` ruff config.
+
+### Added
+- Comprehensive runtime integration test suite (`tests/test_generated_runtime.py`) covering all 16 meaningful configuration combinations — compile validation, file presence, content invariants, and live pytest execution for no-DB and SQLite projects.
+
+### Changed
+- `_write_linting` in the generator was split into `_write_pyproject` (runs when `tests or lint`) and `_write_pre_commit` (runs only when `lint`).
+- Makefile `help` target redesigned with ANSI color codes, grouped sections (SETUP, DEVELOPMENT, TESTING, CODE QUALITY, DATABASE, DOCKER), and actual shell commands shown beneath each target.
+- Live pytest tests in the runtime test suite skip on Python < 3.11, as generated projects target Python 3.12.
+
+## [0.1.9] - 2026-03-03
+
+### Added
+- Automated lint and formatting job in CI workflow: runs ruff and black on every push/PR, auto-commits formatting fixes.
+- CI test job now depends on the lint job to enforce code style before running tests.
+
+### Changed
+- Refined CLI option formatting and spacing in `main.py` for a more consistent and professional output.
+- Improved internal scripts (`enforce_version_bump.py`, `verify_wheel_matches_source.py`, `check_pypi_artifact_sync.py`) with better structure and error handling.
+
+### Fixed
+- Added type assertion for `project_name` in CLI to satisfy mypy strict mode.
+
 ## [0.1.8] - 2026-03-03
 
 ### Fixed
