@@ -152,9 +152,7 @@ def new(
         )
 
     elif orm is not None and orm != "none" and db is None:
-        raise click.ClickException(
-            "--orm requires --db. Use --db sqlite or --db postgresql."
-        )
+        raise click.ClickException("--orm requires --db. Use --db sqlite or --db postgresql.")
 
     elif project_name is not None and db is None and any([docker, tests, lint, ci, makefile]):
         raise click.ClickException(

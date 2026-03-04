@@ -18,7 +18,6 @@ from fastforgex.engine.config import ProjectConfig
 from fastforgex.engine.generator import generate
 from fastforgex.engine.resolver import resolve
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -353,9 +352,7 @@ def test_makefile_down_not_in_phony_without_postgresql(tmp_path: Path) -> None:
         ({"lint": True}, ["ruff", "black"]),
     ],
 )
-def test_requirements_content(
-    tmp_path: Path, kwargs: dict[str, Any], tokens: list[str]
-) -> None:
+def test_requirements_content(tmp_path: Path, kwargs: dict[str, Any], tokens: list[str]) -> None:
     root = _gen(tmp_path, **kwargs)
     reqs = (root / "requirements.txt").read_text(encoding="utf-8")
     for token in tokens:
