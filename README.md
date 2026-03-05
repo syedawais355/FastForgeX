@@ -15,6 +15,10 @@ fastforgex new
 
 ---
 
+<video src="assets/videos/fastforgex_tutorial.mp4" controls width="100%"></video>
+
+---
+
 ## Table of Contents
 
 - [Requirements](#requirements)
