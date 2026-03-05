@@ -15,7 +15,7 @@ fastforgex new
 
 ---
 
-<video src="assets/videos/fastforgex_tutorial.mp4" controls width="100%"></video>
+[![FastForgeX Tutorial](https://img.youtube.com/vi/kdKawd3ViLk/maxresdefault.jpg)](https://youtu.be/kdKawd3ViLk)
 
 ---
 
