@@ -1,4 +1,4 @@
-"""FastAPI application bootstrap and API wiring."""
+"""FastAPI application."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from app.core.config import settings
 from app.core.exceptions import AppError
 from app.core.logger import get_logger
 {% if use_db %}
-from app.db.session import close_db
+from app.db.session import close_db, init_db
 {% endif %}
 
 logger = get_logger(__name__)
@@ -22,6 +22,9 @@ logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+{% if use_db %}
+    await init_db()
+{% endif %}
     logger.info("startup complete")
     yield
 {% if use_db %}
