@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fastforgex"
-version = "0.2.0"
+version = "0.2.1"
 description = "FastAPI project scaffolding CLI"
 readme = "README.md"
 license = { text = "MIT" }
@@ -29,7 +29,7 @@ dependencies = [
     "click>=8.1.0",
     "jinja2>=3.1.0",
     "questionary>=2.0.1",
-    "pydantic-settings>=2.3.0",
+    "pydantic-settings>=2.4.0",
 ]
 
 [project.optional-dependencies]
