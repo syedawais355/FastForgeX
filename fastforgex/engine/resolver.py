@@ -38,7 +38,7 @@ def get_requirements(config: ProjectConfig) -> list[str]:
     """Return the ordered list of pip dependencies for the given config."""
     deps: list[str] = [
         "fastapi>=0.111.0",
-        "pydantic-settings>=2.3.0",
+        "pydantic-settings>=2.4.0",
         "uvicorn[standard]>=0.30.0",
     ]
 

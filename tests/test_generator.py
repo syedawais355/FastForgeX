@@ -72,10 +72,10 @@ def test_db_files_created_postgresql(tmp_path: Path) -> None:
     assert (root / "alembic.ini").exists()
 
 
-def test_postgresql_main_does_not_force_db_init_on_startup(tmp_path: Path) -> None:
+def test_postgresql_main_forces_db_init_on_startup(tmp_path: Path) -> None:
     root = _gen(tmp_path, db="postgresql")
     main_source = (root / "app" / "main.py").read_text()
-    assert "await init_db()" not in main_source
+    assert "await init_db()" in main_source
     assert "from app.db.session import close_db" in main_source
 
 
