@@ -16,6 +16,52 @@ CONTEXT_SETTINGS = {
     "max_content_width": 100,
 }
 
+_CLI_HELP = """\
+FastForgeX generates production-ready FastAPI projects in seconds.
+
+\b
+MODES
+  interactive   Run `fastforgex new` (no flags) for a guided prompt wizard.
+  preset        Use --preset for a one-shot stack with sensible defaults.
+  explicit      Pass --db and any combination of flags for full control.
+
+\b
+QUICK EXAMPLES
+  fastforgex new                              # interactive wizard
+  fastforgex new myapi --preset api           # PostgreSQL + tests + lint + CI
+  fastforgex new myapi --preset full          # above + Docker
+  fastforgex new myapi --db sqlite --tests    # custom: SQLite + pytest
+  fastforgex new myapi --preset full --dry-run  # preview files, nothing written
+"""
+
+_NEW_HELP = """\
+Bootstrap a new FastAPI project scaffold.
+
+\b
+MODES — three ways to invoke this command:
+  1. INTERACTIVE   fastforgex new
+                   Guided prompt wizard; ideal for exploring options.
+  2. PRESET        fastforgex new <name> --preset [minimal|api|full]
+                   One-shot curated stack, no individual flags needed.
+  3. EXPLICIT      fastforgex new <name> --db <engine> [flags...]
+                   Full control. --db is always required in this mode.
+
+\b
+PRESETS
+  minimal   no DB · tests · lint                                    (17 files)
+  api       PostgreSQL · SQLAlchemy · tests · lint · CI · Makefile  (27 files)
+  full      api preset + Docker + docker-compose                    (31 files)
+
+\b
+EXAMPLES
+  fastforgex new myapi --preset full
+  fastforgex new myapi --preset full --dry-run
+  fastforgex new myapi --preset full -o ~/projects
+  fastforgex new myapi --db postgresql --docker --tests --lint --ci --makefile
+  fastforgex new myapi --db sqlite --tests --lint
+  fastforgex new myapi --db none --tests --lint
+"""
+
 PRESETS: dict[str, dict[str, object]] = {
     "minimal": {
         "db": "none",
@@ -54,62 +100,104 @@ def _resolve_cli_version() -> str:
         return __version__
 
 
-@click.group(context_settings=CONTEXT_SETTINGS)
+@click.group(context_settings=CONTEXT_SETTINGS, help=_CLI_HELP)
 @click.version_option(version=_resolve_cli_version(), prog_name="fastforgex")
 def cli() -> None:
-    """FastForgeX: FastAPI project scaffolder."""
+    pass
 
 
 @cli.command(
     context_settings=CONTEXT_SETTINGS,
-    short_help="Create a new FastAPI project scaffold.",
+    short_help="Scaffold a new FastAPI project.",
+    help=_NEW_HELP,
 )
-@click.argument("project_name", required=False)
+@click.argument("project_name", required=False, metavar="PROJECT_NAME")
 @click.option(
     "--db",
     type=click.Choice(["none", "sqlite", "postgresql"]),
     default=None,
-    help="Database engine to use.",
+    help=(
+        "Database engine.  none = no DB layer,  sqlite = lightweight local DB,"
+        "  postgresql = production-grade async Postgres."
+        " SQLAlchemy + Alembic are added automatically when a DB is chosen."
+    ),
 )
 @click.option(
     "--orm",
     type=click.Choice(["none", "sqlalchemy"]),
     default=None,
-    help="ORM layer. Defaults to 'sqlalchemy' when a database is selected.",
+    help=(
+        "ORM layer. Automatically set to 'sqlalchemy' when --db is sqlite or postgresql."
+        " Only override this if you want to skip the ORM despite having a DB."
+    ),
 )
 @click.option(
     "--docker",
     is_flag=True,
     default=False,
-    help="Generate Dockerfile and .dockerignore.",
+    help=(
+        "Add Docker support: multi-stage Dockerfile, .dockerignore, and entrypoint.sh."
+        " docker-compose.yml is also generated for PostgreSQL projects."
+    ),
 )
-@click.option("--tests", is_flag=True, default=False, help="Include a pytest suite.")
-@click.option("--lint", is_flag=True, default=False, help="Setup Ruff, Black, and pre-commit.")
-@click.option("--ci", is_flag=True, default=False, help="Include a GitHub Actions CI workflow.")
+@click.option(
+    "--tests",
+    is_flag=True,
+    default=False,
+    help=(
+        "Add a pytest suite with an async HTTP client fixture (httpx + pytest-asyncio)."
+        " Includes tests/conftest.py and a health-endpoint smoke test."
+    ),
+)
+@click.option(
+    "--lint",
+    is_flag=True,
+    default=False,
+    help=(
+        "Add code-quality tooling: Ruff (linting), Black (formatting), mypy (types),"
+        " and a pre-commit config. Also generates pyproject.toml with tool settings."
+    ),
+)
+@click.option(
+    "--ci",
+    is_flag=True,
+    default=False,
+    help=(
+        "Add a GitHub Actions CI workflow (.github/workflows/ci.yml)."
+        " Runs lint, type-check, and tests. Includes a Postgres service for pg projects."
+    ),
+)
 @click.option(
     "--makefile",
     is_flag=True,
     default=False,
-    help="Add a Makefile with common shortcuts.",
+    help=(
+        "Add a Makefile with shortcuts: install, run, test, test-cov, lint, format,"
+        " migrate, migration, rollback, build, up, down, and a formatted help target."
+    ),
 )
 @click.option(
     "--preset",
     type=click.Choice(["minimal", "api", "full"]),
     default=None,
-    help="Apply a predefined stack (overrides individual flags).",
+    help=(
+        "Apply a curated stack: minimal (no DB + tests + lint), "
+        "api (PostgreSQL + SQLAlchemy + tests + lint + CI + Makefile), "
+        "full (api + Docker + docker-compose). Overrides all individual flags."
+    ),
 )
 @click.option(
     "--output",
     "-o",
     default=".",
     show_default=True,
-    help="Target directory for the new project folder.",
+    help="Directory where the project folder will be created. Defaults to current directory.",
 )
 @click.option(
     "--dry-run",
     is_flag=True,
     default=False,
-    help="Preview file structure without writing.",
+    help="Print the list of files that would be created without writing anything to disk.",
 )
 def new(
     project_name: str | None,
